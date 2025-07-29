@@ -6,6 +6,7 @@ export class Chest extends Entity {
   public lootTable: string = "default";
   public respawnTime: number = 300; // in seconds
   public isOpen: boolean = false;
+  public chestType: string = "chest-good"; // Store the chest type
 
   constructor(
     scene: Phaser.Scene,
@@ -13,12 +14,14 @@ export class Chest extends Entity {
     y: number,
     id: string,
     lootTable: string = "default",
-    respawnTime: number = 300
+    respawnTime: number = 300,
+    chestType: string = "chest-good" // Accept chestType parameter
   ) {
-    super(scene, x, y, "chest-closed", id);
+    super(scene, x, y, chestType, id); // Use chestType instead of "chest-closed"
 
     this.lootTable = lootTable;
     this.respawnTime = respawnTime;
+    this.chestType = chestType; // Store the chest type for respawning
 
     // Set up physics for the chest sprite
     this.setupPhysics();

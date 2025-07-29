@@ -27,6 +27,7 @@ interface ChestState {
   chestSprite: Chest;
   x: number;
   y: number;
+  chestType: string;
   respawnTimer?: Phaser.Time.TimerEvent;
 }
 
@@ -318,7 +319,7 @@ export class GameScene extends Phaser.Scene {
           let chestId = "";
           let lootTable = "default";
           let respawnTime = 300;
-          let chestType = "chest-closed";
+          let chestType = "chest-good"; // Changed default from "chest-closed"
 
           // Parse properties
           obj.properties.forEach((prop: any) => {
@@ -370,7 +371,7 @@ export class GameScene extends Phaser.Scene {
     y: number,
     lootTable: string = "default",
     respawnTime: number = 300,
-    chestType: string = "chest-closed"
+    chestType: string = "chest-good" // Changed default from "chest-closed"
   ): Chest | null {
     try {
       // Check if chest with this ID already exists
@@ -383,9 +384,9 @@ export class GameScene extends Phaser.Scene {
         return existingChest.chestSprite;
       }
 
-      // Create the chest entity
-      const chest = new Chest(this, x, y, chestId, lootTable, respawnTime);
-      chest.setTexture(chestType);
+      // Create the chest entity with the chestType parameter
+      const chest = new Chest(this, x, y, chestId, lootTable, respawnTime, chestType);
+      // Remove the setTexture call since the constructor now handles it
 
       // Add to chests group
       this.chests.add(chest);
@@ -399,6 +400,7 @@ export class GameScene extends Phaser.Scene {
         chestSprite: chest,
         x: x,
         y: y,
+        chestType: chestType, // Store the chest type
       };
 
       this.chestStates.set(chestId, chestState);
@@ -407,6 +409,32 @@ export class GameScene extends Phaser.Scene {
     } catch (error) {
       console.error("Error spawning chest:", error);
       return null;
+    }
+  }
+
+  private scheduleChestRespawn(chestState: ChestState): void {
+    try {
+      // Clear any existing respawn timer
+      if (chestState.respawnTimer) {
+        chestState.respawnTimer.destroy();
+      }
+
+      // Create new respawn timer
+      chestState.respawnTimer = this.time.delayedCall(
+        chestState.respawnTime * 1000, // Convert seconds to milliseconds
+        () => {
+          // Respawn the chest
+          chestState.isOpen = false;
+          chestState.chestSprite.setVisible(true);
+          chestState.chestSprite.setActive(true);
+          // Use the stored chestType instead of "chest-closed"
+          chestState.chestSprite.setTexture(chestState.chestType);
+
+          eventBus.emit("ui.message.show", "A chest has respawned nearby!");
+        }
+      );
+    } catch (error) {
+      console.error("Error scheduling chest respawn:", error);
     }
   }
 
@@ -498,31 +526,6 @@ export class GameScene extends Phaser.Scene {
     } catch (error) {
       console.error("Error opening chest:", error);
       return false;
-    }
-  }
-
-  private scheduleChestRespawn(chestState: ChestState): void {
-    try {
-      // Clear any existing respawn timer
-      if (chestState.respawnTimer) {
-        chestState.respawnTimer.destroy();
-      }
-
-      // Create new respawn timer
-      chestState.respawnTimer = this.time.delayedCall(
-        chestState.respawnTime * 1000, // Convert seconds to milliseconds
-        () => {
-          // Respawn the chest
-          chestState.isOpen = false;
-          chestState.chestSprite.setVisible(true);
-          chestState.chestSprite.setActive(true);
-          chestState.chestSprite.setTexture("chest-closed");
-
-          eventBus.emit("ui.message.show", "A chest has respawned nearby!");
-        }
-      );
-    } catch (error) {
-      console.error("Error scheduling chest respawn:", error);
     }
   }
 
