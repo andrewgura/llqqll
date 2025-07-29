@@ -21,6 +21,8 @@ export class Monster extends Character {
   initialPosition: { x: number; y: number } = { x: 0, y: 0 };
   spriteSize: number = 64;
   private targetIndicator: Phaser.GameObjects.Graphics | null = null;
+  isRare: boolean = false;
+  isBoss: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, monsterType: string) {
     // Get monster data from dictionary
@@ -42,6 +44,8 @@ export class Monster extends Character {
       this.armor = monsterData?.armor || 0; // ADDED: Only new line
       this.isAggressive = monsterData?.isAggressive || false;
       this.spriteSize = monsterData?.spriteSize || 64;
+      this.isRare = monsterData?.isRare || false;
+      this.isBoss = monsterData?.isBoss || false;
 
       // Store initial position for non-aggressive wandering
       this.initialPosition = { x, y };
@@ -72,7 +76,8 @@ export class Monster extends Character {
         health: this.health,
         maxHealth: this.maxHealth,
         isAggressive: this.isAggressive,
-        // Include color and scale in the event for debugging/tracking
+        isRare: this.isRare,
+        isBoss: this.isBoss,
         color: monsterData?.color,
         scale: monsterData?.scale,
       });

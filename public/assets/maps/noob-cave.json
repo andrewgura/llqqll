@@ -3528,6 +3528,80 @@
                  "name":"",
                  "properties":[
                         {
+                         "name":"isRare",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"maxRespawnTime",
+                         "type":"int",
+                         "value":1000
+                        }, 
+                        {
+                         "name":"minRespawnTime",
+                         "type":"int",
+                         "value":400
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"big-bones"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":-1519,
+                 "y":-73
+                }, 
+                {
+                 "height":32,
+                 "id":17,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"isBoss",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"maxRespawnTime",
+                         "type":"int",
+                         "value":1000
+                        }, 
+                        {
+                         "name":"minRespawnTime",
+                         "type":"int",
+                         "value":400
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"bone-mancer"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2562,
+                 "y":832.666666666667
+                }, 
+                {
+                 "height":32,
+                 "id":19,
+                 "name":"",
+                 "properties":[
+                        {
                          "name":"maxCount",
                          "type":"int",
                          "value":1
@@ -3535,7 +3609,7 @@
                         {
                          "name":"monsterType",
                          "type":"string",
-                         "value":"big-bones"
+                         "value":"decayed-skeleton"
                         }, 
                         {
                          "name":"respawnTime",
@@ -3546,8 +3620,116 @@
                  "type":"",
                  "visible":true,
                  "width":32,
-                 "x":-1519,
-                 "y":-73
+                 "x":2556,
+                 "y":627
+                }, 
+                {
+                 "height":32,
+                 "id":20,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"decayed-skeleton"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2677,
+                 "y":670
+                }, 
+                {
+                 "height":32,
+                 "id":21,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"decayed-skeleton"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2406,
+                 "y":777
+                }, 
+                {
+                 "height":32,
+                 "id":22,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"decayed-skeleton"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2652,
+                 "y":774
+                }, 
+                {
+                 "height":32,
+                 "id":23,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"decayed-skeleton"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2449,
+                 "y":614
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -5301,7 +5483,7 @@
                         {
                          "name":"respawnTime",
                          "type":"string",
-                         "value":"5"
+                         "value":"30"
                         }],
                  "rotation":0,
                  "type":"",
@@ -5420,6 +5602,38 @@
                  "width":24.5,
                  "x":2561.75,
                  "y":742.5
+                }, 
+                {
+                 "height":32,
+                 "id":18,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"chestType",
+                         "type":"string",
+                         "value":"chest-closed"
+                        }, 
+                        {
+                         "name":"id",
+                         "type":"string",
+                         "value":"noob-cave-chest-01"
+                        }, 
+                        {
+                         "name":"lootTable",
+                         "type":"string",
+                         "value":"noob-cave-table-poor"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"string",
+                         "value":"300"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2381,
+                 "y":675
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -5428,7 +5642,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":17,
+ "nextobjectid":24,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

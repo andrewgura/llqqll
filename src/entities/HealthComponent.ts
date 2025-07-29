@@ -44,6 +44,14 @@ export class HealthComponent extends Component {
       // Get entity-specific name when available
       if ((this.character as any).monsterName) {
         displayName = (this.character as any).monsterName;
+
+        const monster = this.character as any;
+
+        if (monster.isRare) {
+          displayName = `💎 ${displayName}`; // Rare
+        } else if (monster.isBoss) {
+          displayName = `👑 ${displayName}`; // Boss
+        }
       } else if ((this.character as any).npcName) {
         displayName = (this.character as any).npcName;
       }
