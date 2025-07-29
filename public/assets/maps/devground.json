@@ -1231,61 +1231,7 @@
          "draworder":"topdown",
          "id":7,
          "name":"monster-layer",
-         "objects":[
-                {
-                 "height":12,
-                 "id":5,
-                 "name":"",
-                 "properties":[
-                        {
-                         "name":"maxCount",
-                         "type":"int",
-                         "value":1
-                        }, 
-                        {
-                         "name":"monsterType",
-                         "type":"string",
-                         "value":"decayed-skeleton"
-                        }, 
-                        {
-                         "name":"respawnTime",
-                         "type":"int",
-                         "value":30
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":12,
-                 "x":621,
-                 "y":-116
-                }, 
-                {
-                 "height":12,
-                 "id":7,
-                 "name":"",
-                 "properties":[
-                        {
-                         "name":"maxCount",
-                         "type":"int",
-                         "value":1
-                        }, 
-                        {
-                         "name":"monsterType",
-                         "type":"string",
-                         "value":"decayed-skeleton"
-                        }, 
-                        {
-                         "name":"respawnTime",
-                         "type":"int",
-                         "value":30
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":12,
-                 "x":387,
-                 "y":203
-                }],
+         "objects":[],
          "offsetx":-2,
          "offsety":-1,
          "opacity":1,

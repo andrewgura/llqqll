@@ -10,7 +10,14 @@ interface SpawnPoint {
   x: number;
   y: number;
   monsterType: string;
-  respawnTime: number;
+  // For normal monsters
+  spawnTime?: number;
+  // For boss/rare monsters
+  minSpawnTime?: number;
+  maxSpawnTime?: number;
+  // Monster classification
+  isBoss?: boolean;
+  isRare?: boolean;
   maxCount: number;
   currentMonsters: Monster[];
   lastRespawnTime: number;
@@ -61,12 +68,41 @@ export class MonsterSpawnSystem {
       try {
         // Extract properties from the Tiled object
         const monsterType = this.getObjectProperty(obj, "monsterType", "");
-        const respawnTime = this.getObjectProperty(obj, "respawnTime", 30);
         const maxCount = this.getObjectProperty(obj, "maxCount", 1);
+        const isBoss = this.getObjectProperty(obj, "isBoss", false);
+        const isRare = this.getObjectProperty(obj, "isRare", false);
 
         if (!monsterType) {
           console.warn("Spawn point missing monsterType property:", obj);
           return;
+        }
+
+        // Determine spawn time properties based on monster type
+        let spawnTimeConfig: any = {};
+
+        if (isBoss || isRare) {
+          // Use minSpawnTime and maxSpawnTime for boss/rare monsters
+          const minSpawnTime = this.getObjectProperty(obj, "minRespawnTime", 60); // Default 60 seconds
+          const maxSpawnTime = this.getObjectProperty(obj, "maxRespawnTime", 120); // Default 120 seconds
+
+          spawnTimeConfig = {
+            minSpawnTime: minSpawnTime * 1000, // Convert to milliseconds
+            maxSpawnTime: maxSpawnTime * 1000, // Convert to milliseconds
+            isBoss,
+            isRare,
+          };
+
+          console.log(
+            `Configured ${isBoss ? "boss" : "rare"} monster ${monsterType} with spawn time range: ${minSpawnTime}-${maxSpawnTime}s`
+          );
+        } else {
+          // Use spawnTime for normal monsters
+          const spawnTime = this.getObjectProperty(obj, "respawnTime", 30); // Default 30 seconds
+          spawnTimeConfig = {
+            spawnTime: spawnTime * 1000, // Convert to milliseconds
+          };
+
+          console.log(`Configured normal monster ${monsterType} with spawn time: ${spawnTime}s`);
         }
 
         // Convert raw Tiled coordinates to proper positions
@@ -92,17 +128,17 @@ export class MonsterSpawnSystem {
         // Convert Tiled coordinates to Phaser world coordinates using MapService
         const phaserCoords = MapService.tiledToPhaser(currentMap, tiledX, tiledY);
 
-        // Create spawn point
+        // Create spawn point with the appropriate spawn time configuration
         const spawnPoint: SpawnPoint = {
           id: `spawn_${obj.id}_${Date.now()}`,
           x: phaserCoords.x,
           y: phaserCoords.y,
           monsterType,
-          respawnTime: respawnTime * 1000, // Convert to milliseconds
           maxCount,
           currentMonsters: [],
           lastRespawnTime: 0,
           isActive: true,
+          ...spawnTimeConfig,
         };
 
         this.spawnPoints.set(spawnPoint.id, spawnPoint);
@@ -120,6 +156,30 @@ export class MonsterSpawnSystem {
 
     const property = obj.properties.find((prop: any) => prop.name === propertyName);
     return property ? property.value : defaultValue;
+  }
+
+  /**
+   * Calculate spawn time for a spawn point
+   */
+  private calculateSpawnTime(spawnPoint: SpawnPoint): number {
+    if (spawnPoint.isBoss || spawnPoint.isRare) {
+      // For boss/rare monsters, generate random time between min and max
+      const minTime = spawnPoint.minSpawnTime || 60000; // Default 60s
+      const maxTime = spawnPoint.maxSpawnTime || 120000; // Default 120s
+      const randomTime = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
+
+      const monsterTypeLabel = spawnPoint.isBoss ? "Boss" : "Rare";
+      console.log(
+        `${monsterTypeLabel} ${spawnPoint.monsterType} will respawn in ${randomTime / 1000}s (range: ${minTime / 1000}-${maxTime / 1000}s)`
+      );
+
+      return randomTime;
+    } else {
+      // For normal monsters, use fixed spawn time
+      const spawnTime = spawnPoint.spawnTime || 30000; // Default 30s
+      console.log(`Normal ${spawnPoint.monsterType} will respawn in ${spawnTime / 1000}s`);
+      return spawnTime;
+    }
   }
 
   /**
@@ -168,58 +228,43 @@ export class MonsterSpawnSystem {
         // Add to spawn point's monster list
         spawnPoint.currentMonsters.push(monster);
 
+        const monsterTypeLabel = spawnPoint.isBoss ? "Boss" : spawnPoint.isRare ? "Rare" : "Normal";
         console.log(
-          `Spawned monster ${monster.id} (${spawnPoint.monsterType}) at spawn point ${spawnPoint.id}`
+          `Spawned ${monsterTypeLabel.toLowerCase()} monster ${monster.id} (${spawnPoint.monsterType}) at spawn point ${spawnPoint.id}`
         );
       } else {
         console.error(
-          `Failed to spawn monster of type ${spawnPoint.monsterType} at spawn point ${spawnPoint.id}`
+          `Failed to spawn monster ${spawnPoint.monsterType} at spawn point ${spawnPoint.id}`
         );
       }
     } catch (error) {
-      console.error(`Error spawning monster at spawn point ${spawnPoint.id}:`, error);
+      console.error("Error spawning single monster:", error);
     }
   }
 
   /**
-   * Handle monster death and schedule respawn
+   * Handle monster death event
    */
   private handleMonsterDeath(data: any): void {
     try {
+      // Find the spawn point for this monster
       let targetSpawnPoint: SpawnPoint | null = null;
 
+      // First try to find by spawnPointId if available
       if (data.spawnPointId) {
         targetSpawnPoint = this.spawnPoints.get(data.spawnPointId) || null;
-
-        if (targetSpawnPoint) {
-          // Remove the dead monster from the spawn point by ID
-          const monsterIndex = targetSpawnPoint.currentMonsters.findIndex(
-            (monster) => monster.id === data.id
-          );
-
-          if (monsterIndex >= 0) {
-            targetSpawnPoint.currentMonsters.splice(monsterIndex, 1);
-          }
-        }
       }
-      // FALLBACK: If no spawnPointId, try the old coordinate-based method
-      else {
-        console.warn("Monster death event missing spawnPointId, using fallback method");
 
+      // Fallback: search through all spawn points for this monster
+      if (!targetSpawnPoint) {
         this.spawnPoints.forEach((spawnPoint) => {
-          const monsterIndex = spawnPoint.currentMonsters.findIndex((monster) => {
-            // Try to match by ID first, then fall back to coordinates
-            return (
-              monster.id === data.id ||
-              (Math.abs(monster.x - data.x) < 32 &&
-                Math.abs(monster.y - data.y) < 32 &&
-                monster.monsterType === data.type)
-            );
-          });
-
-          if (monsterIndex >= 0) {
-            spawnPoint.currentMonsters.splice(monsterIndex, 1);
+          const monsterIndex = spawnPoint.currentMonsters.findIndex(
+            (monster) => monster.id === data.monsterId
+          );
+          if (monsterIndex !== -1) {
             targetSpawnPoint = spawnPoint;
+            // Remove the dead monster from the list
+            spawnPoint.currentMonsters.splice(monsterIndex, 1);
             console.log(`Removed monster using fallback method from spawn point ${spawnPoint.id}`);
           }
         });
@@ -248,12 +293,15 @@ export class MonsterSpawnSystem {
         console.log(`Cleared existing respawn timer for spawn point ${spawnPoint.id}`);
       }
 
+      // Calculate spawn time (random for boss/rare, fixed for normal)
+      const spawnDelay = this.calculateSpawnTime(spawnPoint);
+
       // Schedule new respawn
       console.log(
-        `Creating respawn timer for spawn point ${spawnPoint.id} with delay ${spawnPoint.respawnTime}ms`
+        `Creating respawn timer for spawn point ${spawnPoint.id} with delay ${spawnDelay}ms`
       );
 
-      const timer = this.scene.time.delayedCall(spawnPoint.respawnTime, () => {
+      const timer = this.scene.time.delayedCall(spawnDelay, () => {
         console.log(`Respawn timer triggered for spawn point ${spawnPoint.id}`);
         this.spawnMonstersAtPoint(spawnPoint);
         this.respawnTimers.delete(spawnPoint.id);
@@ -262,7 +310,7 @@ export class MonsterSpawnSystem {
       this.respawnTimers.set(spawnPoint.id, timer);
 
       console.log(
-        `Respawn scheduled for spawn point ${spawnPoint.id} in ${spawnPoint.respawnTime / 1000} seconds`
+        `Respawn scheduled for spawn point ${spawnPoint.id} in ${spawnDelay / 1000} seconds`
       );
     } catch (error) {
       console.error(`Error scheduling respawn for spawn point ${spawnPoint.id}:`, error);
@@ -305,18 +353,33 @@ export class MonsterSpawnSystem {
     position: { x: number; y: number };
     currentCount: number;
     maxCount: number;
-    respawnTime: number;
+    spawnTimeInfo: string;
+    isBoss?: boolean;
+    isRare?: boolean;
   }> {
     const info: Array<any> = [];
 
     this.spawnPoints.forEach((spawnPoint) => {
+      let spawnTimeInfo: string;
+
+      if (spawnPoint.isBoss || spawnPoint.isRare) {
+        const minTime = (spawnPoint.minSpawnTime || 60000) / 1000;
+        const maxTime = (spawnPoint.maxSpawnTime || 120000) / 1000;
+        spawnTimeInfo = `${minTime}-${maxTime}s (random)`;
+      } else {
+        const fixedTime = (spawnPoint.spawnTime || 30000) / 1000;
+        spawnTimeInfo = `${fixedTime}s (fixed)`;
+      }
+
       info.push({
         id: spawnPoint.id,
         monsterType: spawnPoint.monsterType,
         position: { x: spawnPoint.x, y: spawnPoint.y },
         currentCount: spawnPoint.currentMonsters.length,
         maxCount: spawnPoint.maxCount,
-        respawnTime: spawnPoint.respawnTime / 1000,
+        spawnTimeInfo,
+        isBoss: spawnPoint.isBoss,
+        isRare: spawnPoint.isRare,
       });
     });
 

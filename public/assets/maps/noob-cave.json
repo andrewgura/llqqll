@@ -3593,8 +3593,8 @@
                  "type":"",
                  "visible":true,
                  "width":32,
-                 "x":2562,
-                 "y":832.666666666667
+                 "x":2531,
+                 "y":546.666666666667
                 }, 
                 {
                  "height":32,
@@ -3620,8 +3620,8 @@
                  "type":"",
                  "visible":true,
                  "width":32,
-                 "x":2556,
-                 "y":627
+                 "x":2529,
+                 "y":842
                 }, 
                 {
                  "height":32,
@@ -5468,7 +5468,7 @@
                         {
                          "name":"chestType",
                          "type":"string",
-                         "value":"chest-closed"
+                         "value":"chest-good"
                         }, 
                         {
                          "name":"id",
@@ -5611,7 +5611,7 @@
                         {
                          "name":"chestType",
                          "type":"string",
-                         "value":"chest-closed"
+                         "value":"chest-great"
                         }, 
                         {
                          "name":"id",
