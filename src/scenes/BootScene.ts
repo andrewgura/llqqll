@@ -138,8 +138,10 @@ export class BootScene extends Phaser.Scene {
         this.load.image(key, `assets/tileset/noob-cave/${file}`);
       });
 
-      this.load.image("chest-closed", "assets/sprites/chest-closed.png");
-      this.load.image("chest-open", "assets/sprites/chest-open.png");
+      // Chests
+      this.load.image("chest-good", "assets/chests/chest-good.png");
+      this.load.image("chest-great", "assets/chests/chest-great.png");
+      this.load.image("chest-rare", "assets/chests/chest-rare.png");
 
       // Load each tile with its own key based on the filename
       tileFiles.forEach((file) => {
