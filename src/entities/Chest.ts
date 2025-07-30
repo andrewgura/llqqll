@@ -15,16 +15,19 @@ export class Chest extends Entity {
     id: string,
     lootTable: string = "default",
     respawnTime: number = 300,
-    chestType: string = "chest-good" // Accept chestType parameter
+    chestType: string = "chest-good"
   ) {
-    super(scene, x, y, chestType, id); // Use chestType instead of "chest-closed"
+    super(scene, x, y, chestType, id);
 
     this.lootTable = lootTable;
     this.respawnTime = respawnTime;
-    this.chestType = chestType; // Store the chest type for respawning
+    this.chestType = chestType;
 
     // Set up physics for the chest sprite
     this.setupPhysics();
+
+    // ADDED: Make the chest interactive
+    this.setupInteraction();
   }
 
   private setupPhysics(): void {
@@ -41,6 +44,73 @@ export class Chest extends Entity {
     }
   }
 
+  // ADDED: New method to setup chest interaction
+  private setupInteraction(): void {
+    try {
+      // Make the chest sprite interactive
+      this.setInteractive();
+
+      // Set the chest to appear above other entities
+      this.setDepth(10);
+
+      // Handle chest opening directly when clicked
+      this.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        console.log(`Chest ${this.id} clicked directly`);
+
+        // Check if this is a left click
+        if (pointer.button !== 0) return;
+
+        // Get the game scene
+        const gameScene = this.scene as any;
+
+        // Check if the player exists and is close enough
+        if (!gameScene.playerCharacter) {
+          console.log("No player character found");
+          return;
+        }
+
+        // Calculate distance from player to chest
+        const playerX = gameScene.playerCharacter.x;
+        const playerY = gameScene.playerCharacter.y;
+        const distance = Phaser.Math.Distance.Between(playerX, playerY, this.x, this.y);
+        const maxInteractionDistance = 64; // 2 tiles worth of distance
+
+        if (distance > maxInteractionDistance) {
+          eventBus.emit("ui.message.show", "You are too far away to open this chest");
+          return;
+        }
+
+        // Check if chest is already open
+        if (this.isOpen) {
+          eventBus.emit("ui.message.show", "This chest is already open");
+          return;
+        }
+
+        // Try to open the chest using GameScene's method
+        if (gameScene.openChest && typeof gameScene.openChest === "function") {
+          console.log("Calling gameScene.openChest...");
+          const success = gameScene.openChest(this);
+        } else {
+          console.error("gameScene.openChest method not found");
+          eventBus.emit("ui.message.show", "Error: Could not open chest");
+        }
+      });
+
+      // Add hover effects for better user feedback
+      this.on("pointerover", () => {
+        if (!this.isOpen) {
+          this.setTint(0xdddddd); // Slightly brighten on hover
+        }
+      });
+
+      this.on("pointerout", () => {
+        this.clearTint(); // Remove tint when not hovering
+      });
+    } catch (error) {
+      console.error("Error setting up chest interaction:", error);
+    }
+  }
+
   /**
    * Check if this chest can be opened
    */
@@ -53,6 +123,19 @@ export class Chest extends Entity {
    */
   public getDistanceFrom(x: number, y: number): number {
     return Phaser.Math.Distance.Between(x, y, this.x, this.y);
+  }
+
+  // ADDED: Method to disable interaction when chest is opened
+  public setAsOpened(): void {
+    this.isOpen = true;
+    this.disableInteractive();
+    this.clearTint();
+  }
+
+  // ADDED: Method to re-enable interaction when chest respawns
+  public setAsClosed(): void {
+    this.isOpen = false;
+    this.setInteractive();
   }
 
   update(time: number, delta?: number): void {

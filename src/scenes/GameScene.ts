@@ -425,8 +425,12 @@ export class GameScene extends Phaser.Scene {
         () => {
           // Respawn the chest
           chestState.isOpen = false;
+
+          // UPDATED: Use the new chest methods to handle respawning
+          chestState.chestSprite.setAsClosed();
           chestState.chestSprite.setVisible(true);
           chestState.chestSprite.setActive(true);
+
           // Use the stored chestType instead of "chest-closed"
           chestState.chestSprite.setTexture(chestState.chestType);
 
@@ -501,12 +505,14 @@ export class GameScene extends Phaser.Scene {
       // Mark chest as open
       chestState.isOpen = true;
 
+      // UPDATED: Use the new chest method to handle opening
+      chest.setAsOpened();
+
       // Hide the chest sprite immediately
       chest.setVisible(false);
       chest.setActive(false);
 
       // Generate loot at chest position using the updated ChestLootTables
-      // Now properly passing the quantity parameter to spawnItem
       ChestLootTables.generateLootFromTable(
         chestState.lootTable,
         chest.x,
@@ -898,14 +904,79 @@ export class GameScene extends Phaser.Scene {
   // MAP TRANSITION METHODS
   // =============================================================================
 
+  teleportPlayerInSameMap(destX: number, destY: number, message?: string): void {
+    try {
+      // Prevent multiple teleportations
+      if (this.isChangingMap) return;
+      this.isChangingMap = true;
+
+      console.log(`Same-map teleportation to: ${destX}, ${destY}`);
+
+      // Quick fade for visual feedback
+      this.cameras.main.fadeOut(150, 0, 0, 0);
+
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        try {
+          // Simply move the player to new position
+          if (this.playerCharacter) {
+            this.playerCharacter.setPosition(destX, destY);
+
+            // Reset physics body to prevent collision issues
+            if (this.playerCharacter.body) {
+              this.playerCharacter.body.reset(destX, destY);
+            }
+
+            // Center camera on new position
+            this.cameras.main.centerOn(destX, destY);
+          }
+
+          // Show teleportation message
+          if (message) {
+            eventBus.emit("ui.message.show", message);
+          }
+
+          // Fade back in
+          this.cameras.main.fadeIn(150, 0, 0, 0);
+
+          // Reset the flag when fade-in is complete
+          this.cameras.main.once("camerafadeincomplete", () => {
+            this.isChangingMap = false;
+            console.log("Same-map teleportation completed successfully");
+          });
+        } catch (error) {
+          console.error("Error during same-map teleportation:", error);
+          this.isChangingMap = false;
+          eventBus.emit("ui.error.show", "Error during teleportation");
+        }
+      });
+    } catch (error) {
+      console.error("Error in teleportPlayerInSameMap:", error);
+      this.isChangingMap = false;
+      eventBus.emit("ui.error.show", "Error during teleportation");
+    }
+  }
+
   changeMap(mapKey: string, destX: number, destY: number, message?: string): void {
     try {
       // Prevent double transitions
       if (this.isChangingMap) return;
+
+      // Get current map from store
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      // NEW: Check if we're trying to "change" to the same map
+      if (mapKey === currentMap) {
+        console.log("Same map detected - using teleportPlayerInSameMap instead");
+        this.teleportPlayerInSameMap(destX, destY, message);
+        return;
+      }
+
+      // Original logic for actual map changes
       this.isChangingMap = true;
 
       // Update the game state
-      useGameStore.getState().updatePlayerMap(mapKey);
+      store.updatePlayerMap(mapKey);
 
       // Fade out camera
       this.cameras.main.fadeOut(300, 0, 0, 0);

@@ -293,7 +293,19 @@ export class PortalSystem {
         message = "You are teleported to a new location.";
       }
 
-      gameScene.changeMap(targetMap, phaserCoords.x, phaserCoords.y, message);
+      // NEW: Check if we're teleporting within the same map
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      if (targetMap === currentMap) {
+        // Same map teleportation - just move the player without full map reload
+        console.log(`Same-map teleportation from ${currentMap} to ${targetMap}`);
+        this.handleSameMapTeleport(gameScene, phaserCoords.x, phaserCoords.y, message);
+      } else {
+        // Different map - use full map change process
+        console.log(`Cross-map teleportation from ${currentMap} to ${targetMap}`);
+        gameScene.changeMap(targetMap, phaserCoords.x, phaserCoords.y, message);
+      }
 
       this.portalCooldown = this.cooldownTime;
       this.scene.time.delayedCall(this.cooldownTime, () => {
@@ -304,6 +316,51 @@ export class PortalSystem {
       this.isTransitioning = false;
       console.error("Error in portal overlap handler:", error);
       eventBus.emit("error.portal.transition", { error });
+    }
+  }
+
+  private handleSameMapTeleport(
+    gameScene: any,
+    destX: number,
+    destY: number,
+    message: string
+  ): void {
+    try {
+      console.log(`Same-map teleport to coordinates: ${destX}, ${destY}`);
+
+      // Simple camera fade for visual feedback
+      gameScene.cameras.main.fadeOut(150, 0, 0, 0);
+
+      gameScene.cameras.main.once("camerafadeoutcomplete", () => {
+        try {
+          // Just move the player - no map reinitialization
+          if (gameScene.playerCharacter) {
+            gameScene.playerCharacter.setPosition(destX, destY);
+
+            // Reset physics body to avoid collision issues
+            if (gameScene.playerCharacter.body) {
+              gameScene.playerCharacter.body.reset(destX, destY);
+            }
+
+            // Center camera on player
+            gameScene.cameras.main.centerOn(destX, destY);
+          }
+
+          // Show the message
+          eventBus.emit("ui.message.show", message);
+
+          // Fade back in
+          gameScene.cameras.main.fadeIn(150, 0, 0, 0);
+
+          console.log("Same-map teleportation completed successfully");
+        } catch (error) {
+          console.error("Error during same-map teleportation:", error);
+          eventBus.emit("ui.error.show", "Error during teleportation");
+        }
+      });
+    } catch (error) {
+      console.error("Error in handleSameMapTeleport:", error);
+      eventBus.emit("ui.error.show", "Error during teleportation");
     }
   }
 

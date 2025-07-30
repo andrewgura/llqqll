@@ -17,12 +17,11 @@ export interface NPCData {
   interactionRadius?: number;
 }
 
-// NPC_DATA moved to internal service
 const NPC_DATA: Record<string, NPCData> = {
   "merchant-aldee": {
     id: "merchant-aldee",
     name: "Al Dee",
-    texture: "playerCharacter", // Reusing playerCharacter texture for now
+    texture: "playerCharacter",
     dialog: [
       "Hello there! I'm Al Dee, the finest merchant in these parts.",
       "I have wares from across the realm!",
