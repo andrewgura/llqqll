@@ -813,22 +813,88 @@ export class GameScene extends Phaser.Scene {
 
   private spawnInitialNPCs(): void {
     try {
-      // Get the current map from the store
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Only spawn NPCs for the game-map
-      if (currentMap === "game-map") {
-        // Spawn Al Dee - merchant NPC
-        const alDeeData = NPCService.getNPC("merchant-aldee");
-        if (alDeeData) {
-          this.spawnNPC(alDeeData, 2128, 1328);
-        }
+      if (!this.map) {
+        console.warn("No map available for NPC spawning");
+        return;
       }
+
+      // Get the npc-layer object layer
+      const npcLayer = this.map.getObjectLayer("npc-layer");
+      if (!npcLayer) {
+        console.log("No npc-layer found in current map");
+        return;
+      }
+
+      console.log(`Found ${npcLayer.objects.length} NPC spawn points in npc-layer`);
+
+      // Process each object in the NPC layer
+      npcLayer.objects.forEach((obj: any) => {
+        try {
+          // Extract the npcId property from the Tiled object
+          const npcId = this.getObjectProperty(obj, "npcId", "");
+
+          if (!npcId) {
+            console.warn("NPC spawn point missing npcId property:", obj);
+            return;
+          }
+
+          // Get NPC data from NPCService
+          const npcData = NPCService.getNPC(npcId);
+          if (!npcData) {
+            console.warn(`NPC data not found for id: ${npcId}`);
+            return;
+          }
+
+          // Convert raw Tiled coordinates to proper positions
+          const tileSize = 32;
+          let tiledX, tiledY;
+
+          if (obj.width && obj.height) {
+            // For rectangular objects, use center point
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            tiledX = Math.floor(centerX / tileSize);
+            tiledY = Math.floor(centerY / tileSize);
+          } else {
+            // For point objects, convert pixel coordinates directly to tile coordinates
+            tiledX = Math.floor(obj.x / tileSize);
+            tiledY = Math.floor(obj.y / tileSize);
+          }
+
+          // Get current map for coordinate conversion
+          const store = useGameStore.getState();
+          const currentMap = store.currentMap;
+
+          // Convert Tiled coordinates to Phaser world coordinates using MapService
+          const phaserCoords = MapService.tiledToPhaser(currentMap, tiledX, tiledY);
+
+          console.log(
+            `Spawning NPC ${npcId} at Tiled(${tiledX}, ${tiledY}) -> Phaser(${phaserCoords.x}, ${phaserCoords.y})`
+          );
+
+          // Spawn the NPC at the converted coordinates
+          const npc = this.spawnNPC(npcData, phaserCoords.x, phaserCoords.y);
+
+          if (npc) {
+            console.log(`Successfully spawned NPC: ${npc.npcName} (${npcId})`);
+          } else {
+            console.warn(`Failed to spawn NPC: ${npcId}`);
+          }
+        } catch (error) {
+          console.error("Error processing NPC spawn point:", obj, error);
+        }
+      });
     } catch (error) {
       console.error("Error in GameScene.spawnInitialNPCs:", error);
       eventBus.emit("ui.error.show", `Error spawning NPCs: ${(error as Error).message}`);
     }
+  }
+
+  private getObjectProperty(obj: any, propertyName: string, defaultValue: any): any {
+    if (!obj.properties) return defaultValue;
+
+    const property = obj.properties.find((prop: any) => prop.name === propertyName);
+    return property ? property.value : defaultValue;
   }
 
   private spawnTestItems(): void {

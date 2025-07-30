@@ -1266,6 +1266,28 @@
                  "width":0,
                  "x":1103.33333333333,
                  "y":-718.666666666667
+                }, 
+                {
+                 "height":0,
+                 "id":11,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"npcId",
+                         "type":"string",
+                         "value":"merchant-aldee"
+                        }, 
+                        {
+                         "name":"roamRadius",
+                         "type":"int",
+                         "value":2
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":316,
+                 "y":55
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -1893,7 +1915,7 @@
          "y":0
         }],
  "nextlayerid":9,
- "nextobjectid":10,
+ "nextobjectid":12,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
