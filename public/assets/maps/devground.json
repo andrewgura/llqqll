@@ -1275,7 +1275,7 @@
                         {
                          "name":"npcId",
                          "type":"string",
-                         "value":"merchant-aldee"
+                         "value":"inn-keeper"
                         }, 
                         {
                          "name":"roamRadius",
@@ -1286,8 +1286,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":316,
-                 "y":55
+                 "x":493.333333333333,
+                 "y":-115.666666666667
                 }],
          "opacity":1,
          "type":"objectgroup",

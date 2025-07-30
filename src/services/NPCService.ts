@@ -6,6 +6,16 @@ export interface ShopItem {
   price: number;
 }
 
+interface NpcQuest {
+  name: string;
+  requirements?: any;
+}
+
+interface QuestType {
+  side?: NpcQuest[] | null;
+  main?: NpcQuest[] | null;
+}
+
 // Interface for NPC data
 export interface NPCData {
   id: string;
@@ -15,6 +25,9 @@ export interface NPCData {
   isMerchant?: boolean;
   shopItems?: ShopItem[];
   interactionRadius?: number;
+  quests?: QuestType;
+  isMainQuestGiver?: boolean;
+  isQuestGiver?: boolean;
 }
 
 const NPC_DATA: Record<string, NPCData> = {
@@ -35,6 +48,26 @@ const NPC_DATA: Record<string, NPCData> = {
       { itemId: "boneShield", price: 35 },
     ],
     interactionRadius: 160, // 5 tiles at 32px per tile
+  },
+  "inn-keeper": {
+    id: "inn-keeper",
+    name: "Inn Keeper",
+    texture: "playerCharacter",
+    dialog: [
+      "Hello there! I'm Al Dee, the finest merchant in these parts.",
+      "I have wares from across the realm!",
+      "What can I interest you in today?",
+    ],
+    isMainQuestGiver: false,
+    isQuestGiver: true,
+    quests: {
+      side: [
+        {
+          name: "SkeletonKiller",
+        },
+      ],
+      main: null,
+    },
   },
 };
 
