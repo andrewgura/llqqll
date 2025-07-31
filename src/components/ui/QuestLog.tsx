@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-import { MainQuets } from "../../data/main-quests";
-import { Riddles } from "../../data/riddles";
-import { SideQuests } from "@/data/side-quests.";
 
 enum QuestTab {
   MAIN = "main",
@@ -40,51 +37,17 @@ const QuestLog: React.FC = () => {
   const questItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const emitEvent = useEmitEvent();
 
-  // Data organization
-  const mainQuestsByPage = MainQuets.reduce<Record<number, MainQuestStep[]>>((acc, quest) => {
-    if (!acc[quest.page]) {
-      acc[quest.page] = [];
-    }
-    acc[quest.page].push(quest);
-    return acc;
-  }, {});
-
-  const maxPages = Math.max(...Object.keys(mainQuestsByPage).map(Number));
+  const maxPages = Math.max(1);
 
   // Calculate total quest points (from completed quests)
   const calculateTotalQuestPoints = (): number => {
-    let total = 0;
-
-    // Add points from completed side quests
-    SideQuests.forEach((quest) => {
-      const progress = getSideQuestProgress(quest);
-      if (progress >= quest.amount) {
-        total += quest.reward;
-      }
-    });
-
-    // Add points from completed riddles
-    Riddles.forEach((riddle) => {
-      if (isRiddleCompleted(riddle.name)) {
-        total += riddle.reward;
-      }
-    });
-
-    return total;
+    return 1;
   };
-
-  // When side tab is activated, select the first quest by default
-  useEffect(() => {
-    if (activeTab === QuestTab.SIDE && SideQuests.length > 0 && !selectedQuest) {
-      setSelectedQuest(SideQuests[0].name);
-    }
-  }, [activeTab, selectedQuest]);
 
   useEventBus("quests.toggle", (data: { visible: boolean }) => {
     setVisible(data.visible);
   });
 
-  // Toggle visibility when 'P' key is pressed
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "p") {
@@ -96,35 +59,26 @@ const QuestLog: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
 
-  // Scroll to selected quest when it changes
   useEffect(() => {
     if (selectedQuest && questItemRefs.current[selectedQuest]) {
       questItemRefs.current[selectedQuest]?.scrollIntoView({ behavior: "smooth" });
     }
   }, [selectedQuest]);
 
-  // Mock completion status (would come from game state in a real implementation)
   const isStepCompleted = (step: number, page: number): boolean => {
-    // For demo purposes: steps 1 and 2 of page 1 are completed
-    return page === 1 && (step === 1 || step === 2);
+    return true;
   };
 
   const isCurrentStep = (step: number, page: number): boolean => {
-    // For demo purposes: step 3 of page 1 is current
-    return page === 1 && step === 3;
+    return true;
   };
 
   const isRiddleCompleted = (name: string): boolean => {
-    // For demo purposes: first and third riddles are completed
-    return name === "FireSword" || name === "Abc2";
+    return true;
   };
 
   const getSideQuestProgress = (quest: SideQuest): number => {
-    // For demo purposes: fixed progress values
-    if (quest.name === "SkeletonKiller") return 3;
-    if (quest.name === "GoblinKiller") return 19;
-    if (quest.name === "BerryCollect") return 3;
-    return Math.floor(Math.random() * quest.amount);
+    return 0;
   };
 
   const handleClose = () => {
@@ -149,28 +103,20 @@ const QuestLog: React.FC = () => {
   };
 
   const renderMainQuests = () => {
-    const pageQuests = mainQuestsByPage[currentPage] || [];
-    pageQuests.sort((a, b) => a.step - b.step);
-
     return (
       <div className="quest-book">
         <div className="quest-book-left">
           <div className="quest-image-container">
-            <img
-              src={`assets/quests/${pageQuests[0]?.img || "riddle.png"}`}
-              alt="Quest"
-              className="quest-image"
-            />
+            <img src={`placeholder.com/400x300"}`} alt="Quest" className="quest-image" />
           </div>
         </div>
         <div className="quest-book-right">
           <div className="quest-page-number">Page {currentPage}</div>
           <div className="quest-steps">
-            {pageQuests.map((quest) => {
-              const completed = isStepCompleted(quest.step, quest.page);
+            {/* const completed = isStepCompleted(quest.step, quest.page);
               const current = isCurrentStep(quest.step, quest.page);
 
-              // Only show steps that are completed or current
+
               if (!completed && !current) return null;
 
               return (
@@ -181,8 +127,7 @@ const QuestLog: React.FC = () => {
                   <span className="quest-step-number">{quest.step}.</span>
                   <span className="quest-step-text">{quest.task}</span>
                 </div>
-              );
-            })}
+              ); */}
           </div>
           <div className="quest-navigation">
             <button
@@ -210,21 +155,18 @@ const QuestLog: React.FC = () => {
       <div className="side-quests-container">
         {/* Navigation panel */}
         <div className="side-quest-navigation">
-          {SideQuests.map((quest) => (
-            <div
+          {/* <div
               key={quest.name}
               className={`side-quest-nav-item ${selectedQuest === quest.name ? "active" : ""}`}
               onClick={() => handleSelectQuest(quest.name)}
             >
               {quest.name}
-            </div>
-          ))}
+            </div> */}
         </div>
 
         {/* Content panel */}
         <div className="side-quest-content">
-          {SideQuests.map((quest) => {
-            const progress = getSideQuestProgress(quest);
+          {/* const progress = getSideQuestProgress(quest);
             const progressPercentage = Math.min(100, (progress / quest.amount) * 100);
             const isComplete = progress >= quest.amount;
 
@@ -236,7 +178,7 @@ const QuestLog: React.FC = () => {
               >
                 <div className="side-quest-header">
                   <div className="side-quest-name">{quest.name}</div>
-                  <div className="side-quest-reward">{quest.reward} Quest Point</div>
+                  <div className="side-quest-reward"> Quest Point</div>
                 </div>
                 <div className="side-quest-description">{quest.description}</div>
                 <div className="side-quest-progress">
@@ -250,13 +192,9 @@ const QuestLog: React.FC = () => {
                     ></div>
                   </div>
                 </div>
-                <div className="side-quest-type-tag">
-                  {quest.type === "kill" ? "Hunt" : "Collect"} •
-                  {quest.isRepeatable ? " Repeatable" : " One-time"}
-                </div>
+                <div className="side-quest-type-tag"></div>
               </div>
-            );
-          })}
+            ); */}
         </div>
       </div>
     );
@@ -265,7 +203,7 @@ const QuestLog: React.FC = () => {
   const renderRiddles = () => {
     return (
       <div className="riddles-container">
-        {Riddles.map((riddle) => {
+        {/* 
           const completed = isRiddleCompleted(riddle.name);
 
           return (
@@ -286,8 +224,7 @@ const QuestLog: React.FC = () => {
                 {completed && <div className="riddle-reward">{riddle.reward} Quest Points</div>}
               </div>
             </div>
-          );
-        })}
+          ); */}
       </div>
     );
   };
