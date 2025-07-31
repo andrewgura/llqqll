@@ -21,7 +21,7 @@ export interface NPCData {
   id: string;
   name: string;
   texture: string;
-  dialog: string[];
+  dialog?: string[];
   isMerchant?: boolean;
   shopItems?: ShopItem[];
   interactionRadius?: number;
