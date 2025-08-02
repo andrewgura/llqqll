@@ -1,5 +1,8 @@
+// src/components/ui/QuestLog.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
+import { useGameStore } from "../../stores/gameStore";
+import { Quest } from "../../types";
 
 enum QuestTab {
   MAIN = "main",
@@ -37,11 +40,15 @@ const QuestLog: React.FC = () => {
   const questItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const emitEvent = useEmitEvent();
 
+  // Get quests from game store
+  const activeQuests = useGameStore((state) => state.quests.active);
+  const completedQuests = useGameStore((state) => state.quests.completed);
+
   const maxPages = Math.max(1);
 
   // Calculate total quest points (from completed quests)
   const calculateTotalQuestPoints = (): number => {
-    return 1;
+    return completedQuests.length; // Simple calculation for now
   };
 
   useEventBus("quests.toggle", (data: { visible: boolean }) => {
@@ -64,6 +71,13 @@ const QuestLog: React.FC = () => {
       questItemRefs.current[selectedQuest]?.scrollIntoView({ behavior: "smooth" });
     }
   }, [selectedQuest]);
+
+  // Auto-select first quest when switching to side quests tab
+  useEffect(() => {
+    if (activeTab === QuestTab.SIDE && activeQuests.length > 0 && !selectedQuest) {
+      setSelectedQuest(activeQuests[0].id);
+    }
+  }, [activeTab, activeQuests, selectedQuest]);
 
   const isStepCompleted = (step: number, page: number): boolean => {
     return true;
@@ -98,8 +112,8 @@ const QuestLog: React.FC = () => {
     }
   };
 
-  const handleSelectQuest = (questName: string) => {
-    setSelectedQuest(questName);
+  const handleSelectQuest = (questId: string) => {
+    setSelectedQuest(questId);
   };
 
   const renderMainQuests = () => {
@@ -113,21 +127,10 @@ const QuestLog: React.FC = () => {
         <div className="quest-book-right">
           <div className="quest-page-number">Page {currentPage}</div>
           <div className="quest-steps">
-            {/* const completed = isStepCompleted(quest.step, quest.page);
-              const current = isCurrentStep(quest.step, quest.page);
-
-
-              if (!completed && !current) return null;
-
-              return (
-                <div
-                  key={`${quest.page}-${quest.step}`}
-                  className={`quest-step ${completed ? "completed" : ""} ${current ? "current" : ""}`}
-                >
-                  <span className="quest-step-number">{quest.step}.</span>
-                  <span className="quest-step-text">{quest.task}</span>
-                </div>
-              ); */}
+            <div className="quest-step current">
+              <span className="quest-step-number">1.</span>
+              <span className="quest-step-text">Main quest system coming soon...</span>
+            </div>
           </div>
           <div className="quest-navigation">
             <button
@@ -151,50 +154,94 @@ const QuestLog: React.FC = () => {
   };
 
   const renderSideQuests = () => {
+    if (activeQuests.length === 0) {
+      return (
+        <div className="side-quests-container">
+          <div className="no-quests">
+            <p>No active side quests</p>
+            <p className="no-quests-hint">Find NPCs with quests to get started!</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="side-quests-container">
         {/* Navigation panel */}
         <div className="side-quest-navigation">
-          {/* <div
-              key={quest.name}
-              className={`side-quest-nav-item ${selectedQuest === quest.name ? "active" : ""}`}
-              onClick={() => handleSelectQuest(quest.name)}
+          {activeQuests.map((quest) => (
+            <div
+              key={quest.id}
+              className={`side-quest-nav-item ${selectedQuest === quest.id ? "active" : ""}`}
+              onClick={() => handleSelectQuest(quest.id)}
             >
-              {quest.name}
-            </div> */}
+              {quest.title}
+            </div>
+          ))}
         </div>
 
         {/* Content panel */}
         <div className="side-quest-content">
-          {/* const progress = getSideQuestProgress(quest);
-            const progressPercentage = Math.min(100, (progress / quest.amount) * 100);
-            const isComplete = progress >= quest.amount;
+          {selectedQuest &&
+            (() => {
+              const quest = activeQuests.find((q) => q.id === selectedQuest);
+              if (!quest) return null;
 
-            return (
-              <div
-                key={quest.name}
-                className={`side-quest-item ${isComplete ? "completed" : ""}`}
-                ref={(el) => (questItemRefs.current[quest.name] = el)}
-              >
-                <div className="side-quest-header">
-                  <div className="side-quest-name">{quest.name}</div>
-                  <div className="side-quest-reward"> Quest Point</div>
-                </div>
-                <div className="side-quest-description">{quest.description}</div>
-                <div className="side-quest-progress">
-                  <div className="side-quest-progress-text">
-                    Progress: {progress}/{quest.amount}
+              const completedObjectives = quest.objectives.filter((obj) => obj.completed).length;
+              const totalObjectives = quest.objectives.length;
+              const progressPercentage =
+                totalObjectives > 0 ? (completedObjectives / totalObjectives) * 100 : 0;
+              const isComplete = quest.completed;
+
+              return (
+                <div
+                  className={`side-quest-item ${isComplete ? "completed" : ""}`}
+                  ref={(el) => (questItemRefs.current[quest.id] = el)}
+                >
+                  <div className="side-quest-header">
+                    <div className="side-quest-name">{quest.title}</div>
+                    <div className="side-quest-reward">Quest Points</div>
                   </div>
-                  <div className="side-quest-progress-bar-container">
-                    <div
-                      className="side-quest-progress-bar-fill"
-                      style={{ width: `${progressPercentage}%` }}
-                    ></div>
+                  <div className="side-quest-description">{quest.description}</div>
+
+                  {/* Objectives */}
+                  <div className="quest-objectives">
+                    <h5>Objectives:</h5>
+                    {quest.objectives.map((objective) => (
+                      <div
+                        key={objective.id}
+                        className={`objective ${objective.completed ? "completed" : ""}`}
+                      >
+                        <span className="objective-status">{objective.completed ? "✓" : "○"}</span>
+                        <span className="objective-text">{objective.description}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Progress */}
+                  <div className="side-quest-progress">
+                    <div className="side-quest-progress-text">
+                      Progress: {completedObjectives}/{totalObjectives} objectives
+                    </div>
+                    <div className="side-quest-progress-bar-container">
+                      <div
+                        className="side-quest-progress-bar-fill"
+                        style={{ width: `${progressPercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="side-quest-status">
+                    {isComplete ? (
+                      <span className="status-complete">Completed</span>
+                    ) : (
+                      <span className="status-active">In Progress</span>
+                    )}
                   </div>
                 </div>
-                <div className="side-quest-type-tag"></div>
-              </div>
-            ); */}
+              );
+            })()}
         </div>
       </div>
     );
@@ -203,28 +250,9 @@ const QuestLog: React.FC = () => {
   const renderRiddles = () => {
     return (
       <div className="riddles-container">
-        {/* 
-          const completed = isRiddleCompleted(riddle.name);
-
-          return (
-            <div key={riddle.name} className={`riddle-card ${completed ? "completed" : "hidden"}`}>
-              <div className="riddle-image-container">
-                {completed ? (
-                  <img
-                    src={`assets/quests/${riddle.img}`}
-                    alt={riddle.name}
-                    className="riddle-image"
-                  />
-                ) : (
-                  <div className="riddle-unknown">?</div>
-                )}
-              </div>
-              <div className="riddle-info">
-                <div className="riddle-name">{completed ? riddle.name : "???"}</div>
-                {completed && <div className="riddle-reward">{riddle.reward} Quest Points</div>}
-              </div>
-            </div>
-          ); */}
+        <div className="no-content">
+          <p>Riddle system coming soon...</p>
+        </div>
       </div>
     );
   };
@@ -256,7 +284,7 @@ const QuestLog: React.FC = () => {
           className={`quest-tab ${activeTab === QuestTab.SIDE ? "active" : ""}`}
           onClick={() => setActiveTab(QuestTab.SIDE)}
         >
-          Side
+          Side ({activeQuests.length})
         </div>
         <div
           className={`quest-tab ${activeTab === QuestTab.RIDDLES ? "active" : ""}`}

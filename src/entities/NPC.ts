@@ -2,7 +2,7 @@ import { Character } from "./Character";
 import { HealthComponent } from "./HealthComponent";
 import { NPCDialogComponent } from "./npc/NPCDialogComponent";
 import { eventBus } from "@/utils/EventBus";
-import { ShopItem } from "@/services/NPCService";
+import { ShopItem, NPCService } from "@/services/NPCService";
 
 export interface NPCData {
   id: string;
@@ -23,8 +23,9 @@ export class NPC extends Character {
   shopItems: ShopItem[] = [];
 
   // UI elements
-
   private merchantIcon: Phaser.GameObjects.Text | null = null;
+  private highlightCircle: Phaser.GameObjects.Arc | null = null;
+  private isHighlighted: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, npcData: NPCData) {
     // Call the parent constructor with the provided texture
@@ -53,6 +54,9 @@ export class NPC extends Character {
         this.createMerchantIcon();
       }
 
+      // Create highlight circle (initially hidden)
+      this.createHighlightCircle();
+
       // Set up click interaction with proper right-click handling
       this.setInteractive();
 
@@ -75,6 +79,10 @@ export class NPC extends Character {
           return false;
         }
       });
+
+      // Add hover event handlers
+      this.on("pointerover", this.handlePointerOver.bind(this));
+      this.on("pointerout", this.handlePointerOut.bind(this));
 
       // Set default animation
       this.playAnimation("down", false);
@@ -175,6 +183,93 @@ export class NPC extends Character {
     }
   }
 
+  private createHighlightCircle(): void {
+    try {
+      // Create a circle that will be used for highlighting
+      this.highlightCircle = this.scene.add.circle(
+        this.x,
+        this.y,
+        this.interactionRadius + 10, // Slightly larger than interaction radius
+        0xff0000, // Default red color
+        0 // Initially invisible
+      );
+
+      this.highlightCircle.setStrokeStyle(3, 0xff0000, 0.8);
+      this.highlightCircle.setDepth(1); // Behind other elements but visible
+      this.highlightCircle.setVisible(false);
+    } catch (error) {
+      console.error(`Error creating highlight circle for NPC ${this.id}:`, error);
+      eventBus.emit("error.npc.highlight", {
+        id: this.id,
+        error,
+      });
+    }
+  }
+
+  private handlePointerOver(): void {
+    try {
+      this.showHighlight();
+      this.updateHighlightColor();
+    } catch (error) {
+      console.error(`Error handling pointer over for NPC ${this.id}:`, error);
+    }
+  }
+
+  private handlePointerOut(): void {
+    try {
+      this.hideHighlight();
+      // Reset cursor
+      if (this.scene.game.canvas) {
+        this.scene.game.canvas.style.cursor = "default";
+      }
+    } catch (error) {
+      console.error(`Error handling pointer out for NPC ${this.id}:`, error);
+    }
+  }
+
+  private showHighlight(): void {
+    if (this.highlightCircle) {
+      this.highlightCircle.setVisible(true);
+      this.isHighlighted = true;
+    }
+  }
+
+  private hideHighlight(): void {
+    if (this.highlightCircle) {
+      this.highlightCircle.setVisible(false);
+      this.isHighlighted = false;
+    }
+  }
+
+  private updateHighlightColor(): void {
+    if (!this.highlightCircle) return;
+
+    try {
+      // Check distance to player
+      const scene = this.scene as any;
+      if (!scene.playerCharacter) return;
+
+      const player = scene.playerCharacter;
+      const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+
+      if (distance <= this.interactionRadius) {
+        // Within range - green highlight and pointer cursor
+        this.highlightCircle.setStrokeStyle(3, 0x00ff00, 0.8); // Green
+        if (this.scene.game.canvas) {
+          this.scene.game.canvas.style.cursor = "pointer";
+        }
+      } else {
+        // Out of range - red highlight and not-allowed cursor
+        this.highlightCircle.setStrokeStyle(3, 0xff0000, 0.8); // Red
+        if (this.scene.game.canvas) {
+          this.scene.game.canvas.style.cursor = "not-allowed";
+        }
+      }
+    } catch (error) {
+      console.error(`Error updating highlight color for NPC ${this.id}:`, error);
+    }
+  }
+
   private handleClick(): void {
     try {
       // Check distance to player
@@ -255,16 +350,30 @@ export class NPC extends Character {
 
   interact(): void {
     try {
-      const dialogComponent = this.components.get<NPCDialogComponent>("dialog");
-      if (dialogComponent) {
-        dialogComponent.startDialog();
+      // Check if this NPC is a quest giver
+      const npcData = NPCService.getNPC(this.id);
 
-        // Emit interaction event
-        eventBus.emit("npc.interacted", {
-          id: this.id,
-          name: this.npcName,
+      if (npcData?.isQuestGiver && npcData.quests?.side && npcData.quests.side.length > 0) {
+        // Show quest giver dialog instead of regular dialog
+        const questIds = npcData.quests.side.map((q) => q.name);
+        eventBus.emit("questGiver.show", {
+          npcId: this.id,
+          npcName: this.npcName,
+          availableQuests: questIds,
         });
+      } else {
+        // Regular dialog interaction
+        const dialogComponent = this.components.get<NPCDialogComponent>("dialog");
+        if (dialogComponent) {
+          dialogComponent.startDialog();
+        }
       }
+
+      // Emit interaction event
+      eventBus.emit("npc.interacted", {
+        id: this.id,
+        name: this.npcName,
+      });
     } catch (error) {
       console.error(`Error interacting with NPC ${this.id}:`, error);
       eventBus.emit("error.npc.interact", {
@@ -289,6 +398,16 @@ export class NPC extends Character {
       if (this.merchantIcon) {
         this.merchantIcon.setX(this.x);
       }
+
+      // Update highlight circle position
+      if (this.highlightCircle) {
+        this.highlightCircle.setPosition(this.x, this.y);
+
+        // Update highlight color if currently highlighted (for real-time distance checking)
+        if (this.isHighlighted) {
+          this.updateHighlightColor();
+        }
+      }
     } catch (error) {
       console.error(`Error in NPC ${this.id} update:`, error);
       eventBus.emit("error.npc.update", {
@@ -303,6 +422,8 @@ export class NPC extends Character {
       // Remove pointer interactivity
       this.off("pointerdown");
       this.off("pointerup");
+      this.off("pointerover");
+      this.off("pointerout");
       this.disableInteractive();
 
       // Destroy interaction zone
@@ -314,6 +435,17 @@ export class NPC extends Character {
       if (this.merchantIcon) {
         this.merchantIcon.destroy();
         this.merchantIcon = null;
+      }
+
+      // Destroy highlight circle
+      if (this.highlightCircle) {
+        this.highlightCircle.destroy();
+        this.highlightCircle = null;
+      }
+
+      // Reset cursor
+      if (this.scene.game.canvas) {
+        this.scene.game.canvas.style.cursor = "default";
       }
 
       // Emit destroy event

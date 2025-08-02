@@ -47,7 +47,7 @@ const NPC_DATA: Record<string, NPCData> = {
       { itemId: "woodenStaff", price: 45 },
       { itemId: "boneShield", price: 35 },
     ],
-    interactionRadius: 160, // 5 tiles at 32px per tile
+    interactionRadius: 200, // 5 tiles at 32px per tile
   },
   "inn-keeper": {
     id: "inn-keeper",
@@ -68,6 +68,7 @@ const NPC_DATA: Record<string, NPCData> = {
       ],
       main: null,
     },
+    interactionRadius: 200,
   },
 };
 

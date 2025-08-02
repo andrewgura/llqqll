@@ -432,3 +432,129 @@
   font-weight: bold;
   .textShadow();
 }
+
+.quest-giver-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.quest-giver-dialog {
+  background-color: @bg-secondary;
+  border: 2px solid @border-primary;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 500px;
+  min-width: 400px;
+  color: @text-primary;
+}
+
+.quest-giver-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid @border-primary;
+  padding-bottom: 10px;
+}
+
+.quest-list p {
+  margin-bottom: 20px;
+  color: @text-secondary;
+}
+
+.quest-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quest-option {
+  padding: 12px;
+  background-color: @ui-element;
+  border: 1px solid @border-primary;
+  border-radius: 4px;
+  color: @text-primary;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: lighten(@ui-element, 10%);
+    color: @text-highlight;
+  }
+
+  &.decline {
+    background-color: @bg-primary;
+    color: @text-secondary;
+  }
+}
+
+.quest-details {
+  .quest-description {
+    margin: 15px 0;
+    color: @text-secondary;
+    line-height: 1.5;
+  }
+
+  .quest-objectives {
+    margin: 20px 0;
+
+    h5 {
+      margin-bottom: 10px;
+      color: @text-highlight;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+
+      li {
+        padding: 5px 0;
+        color: @text-primary;
+      }
+    }
+  }
+
+  .quest-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid @border-primary;
+  }
+
+  .accept-button {
+    padding: 10px 20px;
+    background-color: @success;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+
+    &:hover {
+      background-color: lighten(@success, 10%);
+    }
+  }
+
+  .back-button {
+    padding: 10px 20px;
+    background-color: @bg-primary;
+    border: 1px solid @border-primary;
+    border-radius: 4px;
+    color: @text-primary;
+    cursor: pointer;
+
+    &:hover {
+      background-color: lighten(@bg-primary, 10%);
+    }
+  }
+}

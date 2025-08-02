@@ -16,6 +16,7 @@ import {
   calculatePointsForNextLevel,
   calculateLevelFromExperience,
 } from "@/utils/SkillProgressionFormula";
+import { questService } from "@/services/QuestService";
 
 // SIMPLIFIED: Calculate stats interface with single move speed
 export interface CalculatedStats {
@@ -107,6 +108,7 @@ export interface GameState {
   updatePlayerMaxCapacity: (amount: number) => void;
   updatePlayerCurrentCapacity: (amount: number) => void;
   recalculateStats: () => void;
+  acceptQuest: (questId: string) => void;
 }
 
 // Helper functions for calculating stats
@@ -359,6 +361,33 @@ export const useGameStore = create<GameState>()(
         },
       }));
       eventBus.emit("playerCharacter.experience.changed", experience);
+    },
+
+    acceptQuest: (questId) => {
+      const quest = questService.createQuestFromDefinition(questId);
+      if (!quest) {
+        console.error(`Quest definition not found: ${questId}`);
+        return;
+      }
+
+      set((state) => {
+        // Check if quest is already active
+        const isAlreadyActive = state.quests.active.some((q) => q.id === questId);
+        if (isAlreadyActive) {
+          return state;
+        }
+
+        const newActiveQuests = [...state.quests.active, quest];
+
+        eventBus.emit("quest.accepted", quest);
+
+        return {
+          quests: {
+            ...state.quests,
+            active: newActiveQuests,
+          },
+        };
+      });
     },
 
     updatePlayerLevel: (level) => {

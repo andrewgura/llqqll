@@ -18,11 +18,25 @@ import SkillsWindow from "./components/ui/Skills";
 import Resources from "./components/ui/Resources";
 import Creatures from "./components/ui/Creatures";
 import CurrencyDisplay from "./components/ui/CurrencyDisplay";
+import QuestGiverDialog from "./components/ui/QuestGiverDialog";
+import { eventBus } from "./utils/EventBus";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
     width: window.innerWidth - 220, // Subtract UI sidebar width
     height: window.innerHeight,
+  });
+
+  const [questGiverDialog, setQuestGiverDialog] = React.useState<{
+    visible: boolean;
+    npcId: string;
+    npcName: string;
+    availableQuests: string[];
+  }>({
+    visible: false,
+    npcId: "",
+    npcName: "",
+    availableQuests: [],
   });
 
   // Handle window resize
@@ -36,6 +50,23 @@ function App() {
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  React.useEffect(() => {
+    const handleQuestGiverShow = (data: any) => {
+      setQuestGiverDialog({
+        visible: true,
+        npcId: data.npcId,
+        npcName: data.npcName,
+        availableQuests: data.availableQuests,
+      });
+    };
+
+    eventBus.on("questGiver.show", handleQuestGiverShow);
+
+    return () => {
+      eventBus.off("questGiver.show", handleQuestGiverShow);
+    };
   }, []);
 
   // Add global context menu prevention
@@ -74,6 +105,13 @@ function App() {
               <Shop />
               <DeathManager />
               <GameItemTooltip />
+              <QuestGiverDialog
+                npcId={questGiverDialog.npcId}
+                npcName={questGiverDialog.npcName}
+                availableQuests={questGiverDialog.availableQuests}
+                visible={questGiverDialog.visible}
+                onClose={() => setQuestGiverDialog((prev) => ({ ...prev, visible: false }))}
+              />
               <QuestLog />
               <Creatures />
             </div>
