@@ -285,23 +285,6 @@ const initialState = {
       archery: { level: 1, experience: 0, maxExperience: 15 },
       magic: { level: 1, experience: 0, maxExperience: 15 },
       shield: { level: 1, experience: 0, maxExperience: 20 },
-
-      // Additional skills
-      power: { level: 1, experience: 0, maxExperience: 15 },
-      armor: { level: 1, experience: 0, maxExperience: 20 },
-
-      // Regeneration skills
-      healthRegen: { level: 1, experience: 0, maxExperience: 15 },
-      manaRegen: { level: 1, experience: 0, maxExperience: 15 },
-
-      // Movement and speed skills
-      moveSpeed: { level: 1, experience: 0, maxExperience: 15 },
-      attackSpeed: { level: 1, experience: 0, maxExperience: 15 },
-
-      // Utility skills
-      capacity: { level: 1, experience: 0, maxExperience: 15 },
-      mana: { level: 10, experience: 0, maxExperience: 15 },
-      health: { level: 1, experience: 0, maxExperience: 15 },
     },
     gold: 100,
     maxCapacity: 40,
@@ -691,7 +674,7 @@ export const useGameStore = create<GameState>()(
       });
     },
 
-    // NEW: Update quest progress when monsters are killed
+    // Update quest progress when monsters are killed
     updateQuestProgress: (monsterId: string) => {
       set((state) => {
         // Find active quests that have objectives matching the killed monster
@@ -723,7 +706,6 @@ export const useGameStore = create<GameState>()(
           };
         });
 
-        // DON'T move quests to completed array automatically
         // Emit events for ready-to-turn-in quests
         const readyQuests = updatedActiveQuests.filter(
           (quest) => quest.readyToTurnIn && !quest.completed
@@ -748,7 +730,6 @@ export const useGameStore = create<GameState>()(
       });
     },
 
-    // 3. Add method to manually turn in quests
     turnInQuest: (questId: string) => {
       set((state) => {
         const questIndex = state.quests.active.findIndex((q) => q.id === questId);

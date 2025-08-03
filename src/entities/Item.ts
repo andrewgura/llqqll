@@ -153,11 +153,6 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
           repeat: -1,
         });
 
-        // Show pickup hint through event system
-        if ((this.scene as any).playerCharacter.nearbyItems.length === 1) {
-          eventBus.emit("ui.message.show", "Press E to pick up item");
-        }
-
         // Emit highlight event
         eventBus.emit("item.highlighted", {
           id: this.instanceId,

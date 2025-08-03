@@ -2,100 +2,221 @@ import React, { useState, useEffect, useRef } from "react";
 import { useEventBus } from "../../hooks/useEventBus";
 
 interface Message {
-  id: string; // Changed from number to string for better uniqueness
+  id: string;
   text: string;
-  type: "normal" | "error";
   timestamp: number;
+  category: "combat" | "event" | "chat";
 }
+
+type TabType = "combat" | "event" | "chat";
 
 const MessageLog: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [lastMessages, setLastMessages] = useState<Map<string, number>>(new Map());
+  const [activeTab, setActiveTab] = useState<TabType>("combat");
+  const [isExpanded, setIsExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const MESSAGE_COOLDOWN = 1000; // 1 second cooldown for duplicate messages
-  const MESSAGE_FADE_DURATION = 4000;
-  const ERROR_FADE_DURATION = 6000;
+  const MAX_MESSAGES_PER_TAB = 50;
+  const MESSAGE_FADE_DURATION = 300000; // 5 minutes
 
+  // Event listeners for combat messages
+  useEventBus(
+    "combat.damage.dealt",
+    (data: { damage: number; target: string; attackType: "auto-attack" | string }) => {
+      const attackTypeText = data.attackType === "auto-attack" ? "auto-attack" : data.attackType;
+      addMessage(
+        `You dealt ${data.damage} damage to ${data.target} with ${attackTypeText}.`,
+        "combat"
+      );
+    }
+  );
+
+  useEventBus(
+    "combat.damage.received",
+    (data: { damage: number; source: string; attackType: "auto-attack" | string }) => {
+      const attackTypeText = data.attackType === "auto-attack" ? "auto attack" : data.attackType;
+      addMessage(
+        `${data.source} dealt ${data.damage} damage to you with ${attackTypeText}.`,
+        "combat"
+      );
+    }
+  );
+
+  // Event listeners for event messages
+  useEventBus("item.picked.up", (data: { itemName: string; quantity?: number }) => {
+    const quantityText = data.quantity && data.quantity > 1 ? ` (${data.quantity})` : "";
+    addMessage(`You picked up a ${data.itemName}${quantityText}.`, "event");
+  });
+
+  useEventBus("player.level.advanced", (data: { fromLevel: number; toLevel: number }) => {
+    addMessage(`You advanced from level ${data.fromLevel} to ${data.toLevel}.`, "event");
+  });
+
+  useEventBus("skill.level.advanced", (data: { skillName: string; level: number }) => {
+    const skillDisplayName = formatSkillName(data.skillName);
+    addMessage(`You advanced to ${skillDisplayName} Level ${data.level}.`, "event");
+  });
+
+  useEventBus("experience.gained", (data: { amount: number; source?: string }) => {
+    const sourceText = data.source ? ` from ${data.source}` : "";
+    addMessage(`You gained ${data.amount} experience${sourceText}.`, "event");
+  });
+
+  // Legacy event listeners for existing system compatibility
   useEventBus("ui.message.show", (text: string) => {
-    addMessage(text, "normal");
+    addMessage(text, "event");
   });
 
   useEventBus("ui.error.show", (error: string | Error) => {
     const errorMessage = error instanceof Error ? error.message : error;
-    addMessage(`Error: ${errorMessage}`, "error");
+    addMessage(`Error: ${errorMessage}`, "event");
   });
 
-  // Generate a unique ID for each message
+  // Chat messages (for future implementation)
+  useEventBus("chat.message.received", (data: { message: string; player?: string }) => {
+    const chatText = data.player ? `${data.player}: ${data.message}` : data.message;
+    addMessage(chatText, "chat");
+  });
+
+  const formatSkillName = (skillId: string): string => {
+    const skillNameMap: { [key: string]: string } = {
+      meleeWeapons: "Melee Weapons",
+      archery: "Archery",
+      magic: "Magic",
+      shield: "Shield",
+      playerLevel: "Combat",
+      health: "Health",
+      mana: "Mana",
+      moveSpeed: "Move Speed",
+      attackSpeed: "Attack Speed",
+      capacity: "Capacity",
+    };
+    return skillNameMap[skillId] || skillId;
+  };
+
   const generateUniqueId = (): string => {
-    // Use timestamp + random number to ensure uniqueness
     const timestamp = Date.now();
     const random = Math.random().toString(36).substr(2, 9);
     return `msg_${timestamp}_${random}`;
   };
 
-  const addMessage = (text: string, type: "normal" | "error") => {
-    // Prevent duplicate messages in quick succession
-    const now = Date.now();
-    const lastTime = lastMessages.get(text);
-    if (lastTime && now - lastTime < MESSAGE_COOLDOWN) {
-      return; // Skip duplicate message during cooldown
-    }
-
-    // Update the last time this message was shown
-    setLastMessages((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(text, now);
-
-      // Clean up old entries (older than 10 seconds)
-      if (newMap.size > 20) {
-        const cutoffTime = now - 10000;
-        for (const [message, timestamp] of newMap.entries()) {
-          if (timestamp < cutoffTime) {
-            newMap.delete(message);
-          }
-        }
-      }
-
-      return newMap;
-    });
-
-    // Generate unique ID for this message
+  const addMessage = (text: string, category: TabType) => {
     const messageId = generateUniqueId();
-
     const newMessage: Message = {
       id: messageId,
       text,
-      type,
-      timestamp: now,
+      timestamp: Date.now(),
+      category,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => {
+      // Add new message
+      const updated = [...prev, newMessage];
 
-    // Set up automatic removal
-    const duration = type === "error" ? ERROR_FADE_DURATION : MESSAGE_FADE_DURATION;
+      // Keep only the latest messages per category to prevent memory bloat
+      const categoryMessages = updated.filter((msg) => msg.category === category);
+      if (categoryMessages.length > MAX_MESSAGES_PER_TAB) {
+        const messagesToRemove = categoryMessages
+          .slice(0, categoryMessages.length - MAX_MESSAGES_PER_TAB)
+          .map((msg) => msg.id);
+        return updated.filter((msg) => !messagesToRemove.includes(msg.id));
+      }
+
+      return updated;
+    });
+
+    // Set up automatic removal after fade duration
     setTimeout(() => {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-    }, duration);
+    }, MESSAGE_FADE_DURATION);
   };
 
-  // Auto-scroll to the newest message
+  // Filter messages based on active tab
+  const filteredMessages = messages.filter((msg) => msg.category === activeTab);
+
+  // Auto-scroll to newest message when tab content changes
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [filteredMessages, activeTab]);
+
+  const getTabDisplayName = (tab: TabType): string => {
+    const names = {
+      combat: "Combat",
+      event: "Event",
+      chat: "Chat",
+    };
+    return names[tab];
+  };
+
+  const getTabMessageCount = (tab: TabType): number => {
+    return messages.filter((msg) => msg.category === tab).length;
+  };
+
+  if (!isExpanded) {
+    return (
+      <div className="message-log-container collapsed">
+        <div className="message-log-header">
+          <button
+            className="expand-button"
+            onClick={() => setIsExpanded(true)}
+            title="Expand Message Log"
+          >
+            ▲
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div id="message-log" className="game-messages" ref={containerRef}>
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          className={`game-message-item ${message.type === "error" ? "error-message" : ""}`}
-        >
-          {message.text}
+    <div className="message-log-container">
+      <div className="message-log-header">
+        <div className="message-log-tabs">
+          {(["combat", "event", "chat"] as TabType[]).map((tab) => (
+            <button
+              key={tab}
+              className={`message-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {getTabDisplayName(tab)}
+              {getTabMessageCount(tab) > 0 && (
+                <span className="message-count">({getTabMessageCount(tab)})</span>
+              )}
+            </button>
+          ))}
         </div>
-      ))}
+        <button
+          className="collapse-button"
+          onClick={() => setIsExpanded(false)}
+          title="Collapse Message Log"
+        >
+          ▼
+        </button>
+      </div>
+
+      <div className="message-log-content" ref={containerRef}>
+        {filteredMessages.length === 0 ? (
+          <div className="no-messages">
+            {activeTab === "combat" && "No combat messages yet."}
+            {activeTab === "event" && "No events yet."}
+            {activeTab === "chat" && "Chat system coming soon..."}
+          </div>
+        ) : (
+          filteredMessages.map((message) => (
+            <div key={message.id} className={`message-item ${message.category}`}>
+              <span className="message-timestamp">
+                {new Date(message.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span className="message-text">{message.text}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

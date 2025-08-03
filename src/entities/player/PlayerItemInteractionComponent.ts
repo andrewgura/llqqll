@@ -18,9 +18,6 @@ export class PlayerItemInteractionComponent extends Component {
     try {
       this.setupInteractionZone();
 
-      // Register key handler
-      this.entity.scene.input.keyboard?.on("keydown-E", this.handlePickupKeyPress, this);
-
       super.initialize();
     } catch (error) {
       console.error("Error initializing PlayerItemInteractionComponent:", error);
@@ -42,12 +39,6 @@ export class PlayerItemInteractionComponent extends Component {
         entityId: this.entity.id,
         error,
       });
-    }
-  }
-
-  handlePickupKeyPress(): void {
-    if (this.nearbyItems.length > 0) {
-      this.pickupNearbyItem();
     }
   }
 
@@ -105,7 +96,6 @@ export class PlayerItemInteractionComponent extends Component {
         this.nearbyItems.push(item);
 
         if (this.nearbyItems.length === 1) {
-          eventBus.emit("ui.message.show", "Press E to pick up item");
           eventBus.emit("player.item.nearby", {
             itemId: item.instanceId,
             name: item.name,
@@ -217,9 +207,6 @@ export class PlayerItemInteractionComponent extends Component {
 
   destroy(): void {
     try {
-      // Remove key handler
-      this.entity.scene.input.keyboard?.off("keydown-E", this.handlePickupKeyPress, this);
-
       if (this.interactionZone) {
         this.interactionZone.destroy();
         this.interactionZone = null;

@@ -107,9 +107,6 @@ export class GameScene extends Phaser.Scene {
 
       store.initializeQuestSystem();
 
-      // Setup input handlers
-      this.setupInputHandlers();
-
       // Spawn initial content
       this.spawnInitialContent();
 
@@ -282,14 +279,6 @@ export class GameScene extends Phaser.Scene {
       console.error("Error initializing portal system:", error);
       eventBus.emit("error.portal.init", { error });
     }
-  }
-
-  private setupInputHandlers(): void {
-    this.input.keyboard?.on("keydown-E", () => {
-      if (this.playerCharacter) {
-        this.playerCharacter.pickupNearbyItem();
-      }
-    });
   }
 
   private spawnInitialContent(): void {
@@ -787,9 +776,6 @@ export class GameScene extends Phaser.Scene {
       // Use the animation system to play the idle animation
       monster.playAnimation("down", false);
 
-      // Let the player know a monster has appeared
-      eventBus.emit("ui.message.show", `A ${monster.monsterName} has appeared!`);
-
       return monster;
     } catch (error) {
       console.error("Error in GameScene.spawnMonster:", error);
@@ -1215,6 +1201,8 @@ export class GameScene extends Phaser.Scene {
       }
       this.cursorPositionSystem = new CursorPositionSystem(this, 32);
       this.cursorPositionSystem.initialize();
+
+      this.spawnInitialContent();
     } catch (error) {
       console.error("Error reinitializing systems for new map:", error);
     }

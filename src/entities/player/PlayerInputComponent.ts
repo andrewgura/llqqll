@@ -246,8 +246,6 @@ export class PlayerInputComponent extends Component {
 
       if (targetedMonster) {
         autoAttackSystem.setTarget(targetedMonster);
-        // Show a message in UI
-        eventBus.emit("ui.message.show", `Attacking ${targetedMonster.monsterName}`);
         return true;
       }
 
