@@ -306,6 +306,10 @@ export interface QuestObjective {
   id: string;
   description: string;
   completed: boolean;
+  target: string; //monster name
+  amount: number;
+  isFirstTimeOnly?: boolean; // From first completetion only
+  isRepeatableReward?: boolean; // Not given on first completetion; given on all repeat completion if quest is repeatable
 }
 
 /**
@@ -394,20 +398,4 @@ export interface ErrorData {
   context: string;
   timestamp: number;
   handled: boolean;
-}
-
-//
-// Quests
-//
-
-export interface Quest {
-  id: string;
-  title: string;
-  description: string;
-  objectives: Array<{
-    id: string;
-    description: string;
-    completed: boolean;
-  }>;
-  completed: boolean;
 }

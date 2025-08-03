@@ -7,8 +7,6 @@ export interface QuestDefinition {
   description: string;
   type: "kill" | "collect" | "deliver";
   isRepeatable?: boolean; // default false
-  target?: string; // For kill/collect quests
-  amount?: number;
   objectives: Omit<QuestObjective, "completed">[];
   rewards: Rewards[];
 }
@@ -26,9 +24,7 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
     title: "Skeleton Slayer",
     description: "Help the Inn Keeper by eliminating the skeleton threat in the area.",
     type: "kill",
-    target: "decayed-skeleton",
     isRepeatable: true,
-    amount: 10,
     rewards: [
       {
         name: "goldCoins",
@@ -46,7 +42,10 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
     objectives: [
       {
         id: "kill-skeletons",
-        description: "Kill 50 Decayed Skeletons (0/50)",
+        description: "Kill 5 Decayed Skeletons (0/5)",
+        target: "decayed-skeleton",
+        amount: 10,
+        isFirstTimeOnly: true,
       },
     ],
   },
