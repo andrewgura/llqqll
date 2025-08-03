@@ -89,7 +89,6 @@ function App() {
 
   return (
     <GameProvider>
-      <ExperiencePopups />
       <UIProvider>
         <div className="app-container">
           <div className="game-container">
@@ -98,6 +97,7 @@ function App() {
               <MessageLog />
               <MapNameLabel />
               <Resources />
+              <ExperiencePopups />
               <div className="bottom-ui">
                 <ActionBar />
               </div>
