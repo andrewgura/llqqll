@@ -811,8 +811,6 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      console.log(`Found ${npcLayer.objects.length} NPC spawn points in npc-layer`);
-
       // Process each object in the NPC layer
       npcLayer.objects.forEach((obj: any) => {
         try {
@@ -846,6 +844,16 @@ export class GameScene extends Phaser.Scene {
             tiledX = Math.floor(obj.x / tileSize);
             tiledY = Math.floor(obj.y / tileSize);
           }
+
+          // Get current map for coordinate conversion
+          const store = useGameStore.getState();
+          const currentMap = store.currentMap;
+
+          // Convert Tiled coordinates to Phaser world coordinates using MapService
+          const phaserCoords = MapService.tiledToPhaser(currentMap, tiledX, tiledY);
+
+          //spawn npc
+          this.spawnNPC(npcData, phaserCoords.x, phaserCoords.y);
         } catch (error) {
           console.error("Error processing NPC spawn point:", obj, error);
         }

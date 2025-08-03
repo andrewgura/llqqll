@@ -2,12 +2,7 @@
 // CENTRALIZED DAMAGE & DAMAGE REDUCTION FORMULAS
 // ============================================================================
 
-import {
-  PlayerCharacterEquipment,
-  PlayerCharacterSkills,
-  MonsterData,
-  MonsterAttackType,
-} from "@/types";
+import { PlayerCharacterEquipment, MonsterAttackType } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 
 /**
