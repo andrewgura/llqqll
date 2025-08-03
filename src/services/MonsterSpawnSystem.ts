@@ -227,11 +227,6 @@ export class MonsterSpawnSystem {
 
         // Add to spawn point's monster list
         spawnPoint.currentMonsters.push(monster);
-
-        const monsterTypeLabel = spawnPoint.isBoss ? "Boss" : spawnPoint.isRare ? "Rare" : "Normal";
-        console.log(
-          `Spawned ${monsterTypeLabel.toLowerCase()} monster ${monster.id} (${spawnPoint.monsterType}) at spawn point ${spawnPoint.id}`
-        );
       } else {
         console.error(
           `Failed to spawn monster ${spawnPoint.monsterType} at spawn point ${spawnPoint.id}`

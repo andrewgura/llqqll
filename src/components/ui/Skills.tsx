@@ -278,8 +278,9 @@ const SkillsWindow: React.FC = () => {
    */
   const getAttackSpeedDisplayValue = (): string => {
     const attackSpeed = calculatedStats.totalAttackSpeed;
+    console.log(attackSpeed);
     // Use the same formula as AutoAttackSystem: max(200, 2000 - ((attackSpeed - 1) * 50))
-    const cooldownMs = Math.max(200, 2000 - (attackSpeed - 1) * 50);
+    const cooldownMs = Math.max(200, 2000 - attackSpeed);
     const cooldownSeconds = cooldownMs / 1000;
 
     // Format to 1 decimal place and add "/s" suffix

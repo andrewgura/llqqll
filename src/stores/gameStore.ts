@@ -192,22 +192,22 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   const baseMana = 100;
   const basePower = 5;
   const baseArmor = 0;
-  const baseMoveSpeed = 250; // SIMPLIFIED: Single base move speed
-  const baseAttackSpeed = 100;
+  const baseMoveSpeed = 250;
+  const baseAttackSpeed = 0;
   const baseHealthRegen = 1;
   const baseManaRegen = 2;
   const baseCapacity = 20;
 
   // Skill bonuses (simplified)
-  const skillHealthBonus = (skills.health?.level || 1) * 5;
-  const skillManaBonus = (skills.mana?.level || 1) * 10;
-  const skillPowerBonus = (skills.power?.level || 1) * 2;
-  const skillArmorBonus = (skills.armor?.level || 1) * 1;
-  const skillMoveSpeedBonus = (skills.moveSpeed?.level || 1) * 5;
-  const skillAttackSpeedBonus = (skills.attackSpeed?.level || 1) * 2;
-  const skillHealthRegenBonus = (skills.healthRegen?.level || 1) * 0.5;
-  const skillManaRegenBonus = (skills.manaRegen?.level || 1) * 1;
-  const skillCapacityBonus = (skills.capacity?.level || 1) * 2;
+  const skillHealthBonus = skills.health?.level || 1;
+  const skillManaBonus = skills.mana?.level || 1;
+  const skillPowerBonus = skills.power?.level || 1;
+  const skillArmorBonus = skills.armor?.level || 1;
+  const skillMoveSpeedBonus = skills.moveSpeed?.level || 1;
+  const skillAttackSpeedBonus = skills.attackSpeed?.level || 1;
+  const skillHealthRegenBonus = skills.healthRegen?.level || 1;
+  const skillManaRegenBonus = skills.manaRegen?.level || 1;
+  const skillCapacityBonus = skills.capacity?.level || 1;
 
   return {
     totalHealth: baseHealth + skillHealthBonus + equipmentBonuses.health,
@@ -229,7 +229,7 @@ const initialCalculatedStats = {
   totalPower: 5,
   totalArmor: 0,
   totalMoveSpeed: 250,
-  totalAttackSpeed: 100,
+  totalAttackSpeed: 0,
   totalHealthRegen: 1,
   totalManaRegen: 2,
   totalCapacity: 20,

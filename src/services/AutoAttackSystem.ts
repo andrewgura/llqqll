@@ -55,7 +55,7 @@ class AutoAttackSystemService {
 
     // Base 2 seconds, reduced by 50ms per attack speed point
     // Formula: 2000 - ((attackSpeed - 1) * 50)
-    const cooldown = this.baseAttackCooldown - (totalAttackSpeed - 1) * 50;
+    const cooldown = this.baseAttackCooldown - totalAttackSpeed;
 
     // Minimum cooldown of 200ms to prevent too fast attacks
     return Math.max(200, cooldown);

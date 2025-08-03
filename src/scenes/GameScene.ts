@@ -424,8 +424,6 @@ export class GameScene extends Phaser.Scene {
 
           // Use the stored chestType instead of "chest-closed"
           chestState.chestSprite.setTexture(chestState.chestType);
-
-          eventBus.emit("ui.message.show", "A chest has respawned nearby!");
         }
       );
     } catch (error) {
@@ -847,26 +845,6 @@ export class GameScene extends Phaser.Scene {
             // For point objects, convert pixel coordinates directly to tile coordinates
             tiledX = Math.floor(obj.x / tileSize);
             tiledY = Math.floor(obj.y / tileSize);
-          }
-
-          // Get current map for coordinate conversion
-          const store = useGameStore.getState();
-          const currentMap = store.currentMap;
-
-          // Convert Tiled coordinates to Phaser world coordinates using MapService
-          const phaserCoords = MapService.tiledToPhaser(currentMap, tiledX, tiledY);
-
-          console.log(
-            `Spawning NPC ${npcId} at Tiled(${tiledX}, ${tiledY}) -> Phaser(${phaserCoords.x}, ${phaserCoords.y})`
-          );
-
-          // Spawn the NPC at the converted coordinates
-          const npc = this.spawnNPC(npcData, phaserCoords.x, phaserCoords.y);
-
-          if (npc) {
-            console.log(`Successfully spawned NPC: ${npc.npcName} (${npcId})`);
-          } else {
-            console.warn(`Failed to spawn NPC: ${npcId}`);
           }
         } catch (error) {
           console.error("Error processing NPC spawn point:", obj, error);
