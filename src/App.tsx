@@ -21,6 +21,7 @@ import CurrencyDisplay from "./components/ui/CurrencyDisplay";
 import QuestGiverDialog from "./components/ui/QuestGiverDialog";
 import { eventBus } from "./utils/EventBus";
 import ExperiencePopups from "./components/ui/ExperiencePopup";
+import LevelUpNotification from "./components/ui/LevelUpNotification";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -98,6 +99,7 @@ function App() {
               <MapNameLabel />
               <Resources />
               <ExperiencePopups />
+              <LevelUpNotification />
               <div className="bottom-ui">
                 <ActionBar />
               </div>

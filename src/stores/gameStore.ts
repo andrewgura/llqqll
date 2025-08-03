@@ -198,8 +198,8 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   // Base stats
   const baseHealth = 100;
   const baseMana = 100;
-  const basePower = 5;
-  const baseArmor = 0;
+  const basePower = 1;
+  const baseArmor = 1;
   const baseMoveSpeed = 250;
   const baseAttackSpeed = 0;
   const baseHealthRegen = 1;
@@ -234,8 +234,8 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
 const initialCalculatedStats = {
   totalHealth: 100,
   totalMana: 100,
-  totalPower: 5,
-  totalArmor: 0,
+  totalPower: 1,
+  totalArmor: 1,
   totalMoveSpeed: 250,
   totalAttackSpeed: 0,
   totalHealthRegen: 1,

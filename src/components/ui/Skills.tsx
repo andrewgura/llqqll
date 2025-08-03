@@ -22,6 +22,7 @@ const SkillRow: React.FC<SkillRowProps> = ({
   onMouseEnter,
   onMouseLeave,
 }) => {
+  // CHANGED: Instead of showing percentage, show current exp / max exp needed for next level
   const progressPercent = Math.min(100, Math.floor((skill.experience / skill.maxExperience) * 100));
 
   // Handle level-up flash animation
@@ -55,7 +56,8 @@ const SkillRow: React.FC<SkillRowProps> = ({
           style={{ width: `${progressPercent}%` }}
         />
         <div id={`${skillId}-progress`} className="skill-progress-text">
-          {progressPercent}/100
+          {/* CHANGED: Show current exp / exp needed for next level instead of percentage */}
+          {skill.experience}/{skill.maxExperience}
         </div>
       </div>
     </div>
@@ -101,8 +103,9 @@ interface TooltipProps {
 const SkillTooltip: React.FC<TooltipProps> = ({ skillId, skill, visible, position }) => {
   if (!visible) return null;
 
+  // CHANGED: Remove percentage calculation, we'll show actual numbers
   const progressPercent = Math.floor((skill.experience / skill.maxExperience) * 100);
-  const remainingPercent = 100 - progressPercent;
+  const remainingExp = skill.maxExperience - skill.experience; // Calculate remaining exp needed
   const bonusDescription = getSkillBonusDescription(skillId, skill.level * 5);
 
   return (
@@ -113,20 +116,44 @@ const SkillTooltip: React.FC<TooltipProps> = ({ skillId, skill, visible, positio
         left: `${position.x}px`,
         top: `${position.y}px`,
         display: visible ? "block" : "none",
+        zIndex: 1000,
+        backgroundColor: "rgba(0, 0, 0, 0.9)",
+        border: "1px solid #8BC34A",
+        borderRadius: "4px",
+        padding: "8px",
+        color: "#FFF",
+        fontSize: "12px",
+        maxWidth: "200px",
       }}
     >
-      <div className="tooltip-title">{getSkillName(skillId)}</div>
-      <div className="tooltip-info">
-        Level: <span className="tooltip-level">{skill.level}</span>
+      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        {getSkillName(skillId)} - Level {skill.level}
       </div>
-      <div className="tooltip-info">
-        Experience: <span className="tooltip-exp">{progressPercent}%/100%</span>
+
+      {/* CHANGED: Show actual experience numbers instead of just percentage */}
+      <div style={{ marginBottom: "4px" }}>
+        Progress: {skill.experience}/{skill.maxExperience} exp
       </div>
-      <div className="tooltip-info">
-        Remaining: <span className="tooltip-remaining">{remainingPercent}%</span>
+
+      <div style={{ marginBottom: "4px", color: "#8BC34A" }}>
+        Remaining: {remainingExp} exp to next level
       </div>
-      <div className="tooltip-divider"></div>
-      <div className="tooltip-bonus">{bonusDescription}</div>
+
+      {bonusDescription && (
+        <div style={{ marginTop: "6px", color: "#FFD700" }}>{bonusDescription}</div>
+      )}
+    </div>
+  );
+};
+
+// NEW: Total Experience Display Component
+const TotalExperienceDisplay: React.FC = () => {
+  const { playerCharacter } = useGameStore();
+
+  return (
+    <div className="total-experience-display">
+      <div className="total-exp-label">Total Experience:</div>
+      <div className="total-exp-value">{playerCharacter.experience.toLocaleString()}</div>
     </div>
   );
 };
@@ -267,8 +294,6 @@ const SkillsWindow: React.FC = () => {
         return calculatedStats.totalManaRegen;
       case "capacity":
         return calculatedStats.totalCapacity;
-      case "attackSpeed":
-        return calculatedStats.totalAttackSpeed;
       default:
         return 0;
     }
@@ -380,8 +405,6 @@ const SkillsWindow: React.FC = () => {
     const totalExp = playerCharacter.experience;
     const levelData = experienceSystem.calculateLevelFromExperience(totalExp);
 
-    console.log(levelData);
-
     const progressPercent =
       levelData.expForNextLevel > 0
         ? Math.floor((levelData.currentExp / levelData.expForNextLevel) * 100)
@@ -459,6 +482,9 @@ const SkillsWindow: React.FC = () => {
           {/* Main Skills Tab */}
           {activeTab === SkillTab.MAIN && (
             <div className="skills-wrapper">
+              {/* NEW: Add total experience display at the top */}
+              <TotalExperienceDisplay />
+
               <SkillRow
                 skillId="playerLevel"
                 skillName="Level"
