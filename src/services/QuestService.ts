@@ -42,7 +42,7 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
     objectives: [
       {
         id: "kill-skeletons",
-        description: "Kill 5 Decayed Skeletons (0/5)",
+        description: "Kill 5 Decayed Skeletons",
         target: "decayed-skeleton",
         amount: 10,
         isFirstTimeOnly: true,
