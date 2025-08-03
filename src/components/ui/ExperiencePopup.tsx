@@ -1,81 +1,103 @@
-// src/components/ui/ExperiencePopup.tsx
 import React, { useState, useEffect } from "react";
 import { useEventBus } from "../../hooks/useEventBus";
-import { ExperiencePopup as ExperiencePopupType } from "../../services/ExperienceSystem";
 
-interface ActivePopup extends ExperiencePopupType {
-  animationStarted: boolean;
+interface ExperiencePopup {
+  id: string;
+  x: number;
+  y: number;
+  experience: number;
+  timestamp: number;
 }
 
 const ExperiencePopups: React.FC = () => {
-  const [popups, setPopups] = useState<ActivePopup[]>([]);
+  const [popups, setPopups] = useState<ExperiencePopup[]>([]);
 
-  // Listen for popup show events
-  useEventBus("experience.popup.show", (popup: ExperiencePopupType) => {
-    if (popup) {
-      setPopups((prev) => [...prev, { ...popup, animationStarted: false }]);
+  // Listen for monster death events
+  useEventBus(
+    "monster.died",
+    (data: {
+      id: string;
+      type: string;
+      name: string;
+      x: number;
+      y: number;
+      experience: number;
+    }) => {
+      // Create new popup
+      const newPopup: ExperiencePopup = {
+        id: `exp-${data.id}-${Date.now()}`,
+        x: data.x,
+        y: data.y,
+        experience: data.experience,
+        timestamp: Date.now(),
+      };
+
+      setPopups((prev) => [...prev, newPopup]);
+
+      // Remove popup after animation completes
+      setTimeout(() => {
+        setPopups((prev) => prev.filter((popup) => popup.id !== newPopup.id));
+      }, 2000);
     }
-  });
-
-  // Listen for popup hide events
-  useEventBus("experience.popup.hide", (popup: ExperiencePopupType) => {
-    if (popup) {
-      setPopups((prev) => prev.filter((p) => p.id !== popup.id));
-    }
-  });
-
-  // Start animations and auto-cleanup
-  useEffect(() => {
-    popups.forEach((popup) => {
-      if (!popup.animationStarted) {
-        // Mark animation as started
-        setPopups((prev) =>
-          prev.map((p) => (p.id === popup.id ? { ...p, animationStarted: true } : p))
-        );
-
-        // Auto-remove after animation duration
-        setTimeout(() => {
-          setPopups((prev) => prev.filter((p) => p.id !== popup.id));
-        }, 2500);
-      }
-    });
-  }, [popups]);
-
-  return (
-    <div className="experience-popups-container">
-      {popups.map((popup) => (
-        <ExperiencePopupItem key={popup.id} popup={popup} />
-      ))}
-    </div>
   );
-};
 
-interface ExperiencePopupItemProps {
-  popup: ActivePopup;
-}
+  // Convert world coordinates to screen coordinates
+  const worldToScreen = (worldX: number, worldY: number) => {
+    // Get the game canvas element
+    const canvas = document.querySelector("canvas");
+    if (!canvas) return { x: 0, y: 0 };
 
-const ExperiencePopupItem: React.FC<ExperiencePopupItemProps> = ({ popup }) => {
-  const [isVisible, setIsVisible] = useState(true);
+    const rect = canvas.getBoundingClientRect();
 
-  useEffect(() => {
-    // Start fade out after 2 seconds
-    const fadeTimer = setTimeout(() => {
-      setIsVisible(false);
-    }, 2000);
+    // Approximate screen position based on world coordinates
+    // This is a simplified conversion - you may need to adjust based on your camera/viewport system
+    const screenX = rect.left + (worldX / 32) * 2; // Assuming 32px tiles
+    const screenY = rect.top + (worldY / 32) * 2;
 
-    return () => clearTimeout(fadeTimer);
-  }, []);
+    return { x: screenX, y: screenY };
+  };
 
   return (
-    <div
-      className={`experience-popup ${isVisible ? "visible" : "fading"}`}
-      style={{
-        left: popup.x,
-        top: popup.y,
-        transform: "translate(-50%, -50%)",
-      }}
-    >
-      <span className="exp-amount">+{popup.amount} XP</span>
+    <div style={{ position: "fixed", top: 0, left: 0, pointerEvents: "none", zIndex: 1000 }}>
+      {popups.map((popup) => {
+        const screenPos = worldToScreen(popup.x, popup.y);
+
+        return (
+          <div
+            key={popup.id}
+            style={{
+              position: "absolute",
+              left: `${screenPos.x}px`,
+              top: `${screenPos.y}px`,
+              color: "#00ff00",
+              fontSize: "16px",
+              fontWeight: "bold",
+              textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
+              animation: "experiencePopup 2s ease-out forwards",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          >
+            +{popup.experience} XP
+          </div>
+        );
+      })}
+      <style>{`
+        @keyframes experiencePopup {
+          0% {
+            opacity: 1;
+            transform: translateY(0px) scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: translateY(-30px) scale(1.2);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-60px) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 };

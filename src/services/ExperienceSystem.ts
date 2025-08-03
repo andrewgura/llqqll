@@ -103,59 +103,50 @@ class ExperienceSystemService {
    */
   awardExperience(amount: number, x?: number, y?: number): void {
     try {
+      if (amount <= 0) return;
+
+      // Default popup position to center of screen if not provided
+      const popupX = x ?? window.innerWidth / 2;
+      const popupY = y ?? window.innerHeight / 2;
+
+      // Get current player state
       const store = useGameStore.getState();
-      const currentExp = store.playerCharacter.experience;
-      const newTotalExp = currentExp + amount;
+      const currentExperience = store.playerCharacter.experience;
+      const newTotalExperience = currentExperience + amount;
 
-      // Calculate old and new levels
-      const oldLevelData = this.calculateLevelFromExperience(currentExp);
-      const newLevelData = this.calculateLevelFromExperience(newTotalExp);
+      // Calculate level changes
+      const currentLevelData = this.calculateLevelFromExperience(currentExperience);
+      const newLevelData = this.calculateLevelFromExperience(newTotalExperience);
 
-      const leveledUp = newLevelData.level > oldLevelData.level;
+      // Update player experience in store
+      store.updatePlayerExperience(newTotalExperience);
 
-      // Update total experience in store
-      store.updatePlayerExperience(newTotalExp);
+      // Show experience popup
+      this.showExperiencePopup(amount, popupX, popupY);
 
-      // Update playerLevel skill to match calculated level
-      if (store.playerCharacter.skills.playerLevel) {
-        store.updateSkill("playerLevel", newLevelData.currentExp);
-
-        // Force update the level if it changed
-        if (leveledUp) {
-          const skills = { ...store.playerCharacter.skills };
-          skills.playerLevel = {
-            level: newLevelData.level,
-            experience: newLevelData.currentExp,
-            maxExperience: newLevelData.expForNextLevel,
-          };
-
-          // Update store with new skill data
-          store.setPlayerCharacterEquipment(store.playerCharacter.equipment, "level-up");
-        }
-      }
-
-      // Show experience popup if position provided
-      if (x !== undefined && y !== undefined) {
-        this.showExperiencePopup(amount, x, y);
-      }
-
-      // Emit events for other systems
-      eventBus.emit("player.experience.gained", {
-        amount,
-        totalExp: newTotalExp,
-        level: newLevelData.level,
-        leveledUp,
+      // Add message to message log
+      eventBus.emit("ui.message.add", {
+        type: "experience",
+        text: `Gained ${amount} experience points!`,
       });
 
-      if (leveledUp) {
-        eventBus.emit("player.level.up", {
-          oldLevel: oldLevelData.level,
+      // Check for level up
+      if (newLevelData.level > currentLevelData.level) {
+        // Update player level in store
+        store.updatePlayerLevel(newLevelData.level);
+
+        // Emit level up event
+        eventBus.emit("player.levelup", {
+          oldLevel: currentLevelData.level,
           newLevel: newLevelData.level,
-          totalExp: newTotalExp,
+          experience: newTotalExperience,
         });
 
-        // Show level up message
-        eventBus.emit("ui.message.show", `Level Up! You are now level ${newLevelData.level}`);
+        // Add level up message
+        eventBus.emit("ui.message.add", {
+          type: "levelup",
+          text: `Congratulations! You are now level ${newLevelData.level}`,
+        });
       }
     } catch (error) {
       console.error("Error awarding experience:", error);

@@ -17,6 +17,7 @@ import { MonsterSpawnSystem } from "@/services/MonsterSpawnSystem";
 import { Chest } from "@/entities/Chest";
 import { ChestLootTables } from "@/data/chest-loot-tables";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
+import { experienceSystem } from "@/services/ExperienceSystem";
 
 // Chest state interface
 interface ChestState {
@@ -247,6 +248,7 @@ export class GameScene extends Phaser.Scene {
       store.registerSystem("gameScene", this);
       store.registerSystem("autoAttackSystem", autoAttackSystem);
       store.registerSystem("monsterSpawnSystem", this.monsterSpawnSystem);
+      store.registerSystem("experienceSystem", experienceSystem);
 
       // Setup systems
       this.itemHoverSystem.setupGlobalPointerHandler(this);
