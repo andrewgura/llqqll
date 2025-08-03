@@ -20,6 +20,7 @@ import Creatures from "./components/ui/Creatures";
 import CurrencyDisplay from "./components/ui/CurrencyDisplay";
 import QuestGiverDialog from "./components/ui/QuestGiverDialog";
 import { eventBus } from "./utils/EventBus";
+import ExperiencePopups from "./components/ui/ExperiencePopup";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -88,6 +89,7 @@ function App() {
 
   return (
     <GameProvider>
+      <ExperiencePopups />
       <UIProvider>
         <div className="app-container">
           <div className="game-container">

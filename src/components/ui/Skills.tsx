@@ -3,6 +3,7 @@ import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { SkillData } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
+import { experienceSystem } from "@/services/ExperienceSystem";
 
 interface SkillRowProps {
   skillId: string;
@@ -370,6 +371,26 @@ const SkillsWindow: React.FC = () => {
     emitEvent("ui.message.show", "Skills window closed");
   };
 
+  const getPlayerLevelData = (): {
+    level: number;
+    currentExp: number;
+    expForNextLevel: number;
+    progressPercent: number;
+  } => {
+    const totalExp = playerCharacter.experience;
+    const levelData = experienceSystem.calculateLevelFromExperience(totalExp);
+
+    const progressPercent =
+      levelData.expForNextLevel > 0
+        ? Math.floor((levelData.currentExp / levelData.expForNextLevel) * 100)
+        : 100;
+
+    return {
+      ...levelData,
+      progressPercent,
+    };
+  };
+
   // Add and remove event listeners
   useEffect(() => {
     if (isDragging) {
@@ -439,8 +460,12 @@ const SkillsWindow: React.FC = () => {
               <SkillRow
                 skillId="playerLevel"
                 skillName="Level"
-                skill={getSkillData("playerLevel")}
-                bonusLevel={getSkillBonus("playerLevel")}
+                skill={{
+                  level: getPlayerLevelData().level,
+                  experience: getPlayerLevelData().currentExp,
+                  maxExperience: getPlayerLevelData().expForNextLevel,
+                }}
+                bonusLevel={0} // No equipment bonus for player level
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
               />

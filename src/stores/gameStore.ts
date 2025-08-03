@@ -17,6 +17,7 @@ import {
   calculateLevelFromExperience,
 } from "@/utils/SkillProgressionFormula";
 import { questService } from "@/services/QuestService";
+import { experienceSystem } from "@/services/ExperienceSystem";
 
 // SIMPLIFIED: Calculate stats interface with single move speed
 export interface CalculatedStats {
@@ -111,6 +112,13 @@ export interface GameState {
   acceptQuest: (questId: string) => void;
   updateQuestProgress: (monsterId: string) => void;
   initializeQuestSystem: () => void;
+  awardExperience: (amount: number, x?: number, y?: number) => void;
+  getPlayerLevelFromExperience: () => {
+    level: number;
+    currentExp: number;
+    expForNextLevel: number;
+  };
+  updatePlayerExperienceAndLevel: (newTotalExp: number) => void;
 }
 
 // Helper functions for calculating stats
@@ -341,17 +349,6 @@ export const useGameStore = create<GameState>()(
         },
       }));
       eventBus.emit("playerCharacter.maxHealth.changed", maxHealth);
-    },
-
-    // Experience and level
-    updatePlayerExperience: (experience) => {
-      set((state) => ({
-        playerCharacter: {
-          ...state.playerCharacter,
-          experience,
-        },
-      }));
-      eventBus.emit("playerCharacter.experience.changed", experience);
     },
 
     updatePlayerLevel: (level) => {
@@ -765,6 +762,87 @@ export const useGameStore = create<GameState>()(
       });
 
       console.log("Quest progress tracking initialized");
+    },
+
+    updatePlayerExperience: (experience) => {
+      set((state) => {
+        const newState = {
+          playerCharacter: {
+            ...state.playerCharacter,
+            experience,
+          },
+        };
+
+        // Calculate level from total experience using EXP_TABLE
+        const levelData = experienceSystem.calculateLevelFromExperience(experience);
+
+        // Update playerLevel skill to match calculated level
+        const updatedSkills = {
+          ...newState.playerCharacter.skills,
+          playerLevel: {
+            level: levelData.level,
+            experience: levelData.currentExp,
+            maxExperience: levelData.expForNextLevel,
+          },
+        };
+
+        newState.playerCharacter.skills = updatedSkills;
+
+        // Recalculate stats with new level
+        const equipmentBonuses = calculateEquipmentBonuses(newState.playerCharacter.equipment);
+        const calculatedStats = calculateTotalStats(newState.playerCharacter, equipmentBonuses);
+
+        eventBus.emit("playerCharacter.experience.changed", experience);
+        eventBus.emit("playerCharacter.level.changed", levelData.level);
+        eventBus.emit("player.stats.updated", calculatedStats);
+
+        return {
+          ...newState,
+          calculatedStats,
+        };
+      });
+    },
+
+    // Award experience using the experience system
+    awardExperience: (amount: number, x?: number, y?: number) => {
+      experienceSystem.awardExperience(amount, x, y);
+    },
+
+    // Get current level data based on total experience
+    getPlayerLevelFromExperience: () => {
+      const state = get();
+      return experienceSystem.calculateLevelFromExperience(state.playerCharacter.experience);
+    },
+
+    // Update both experience and level in one operation
+    updatePlayerExperienceAndLevel: (newTotalExp: number) => {
+      const state = get();
+      const oldLevelData = experienceSystem.calculateLevelFromExperience(
+        state.playerCharacter.experience
+      );
+      const newLevelData = experienceSystem.calculateLevelFromExperience(newTotalExp);
+
+      // Update experience
+      get().updatePlayerExperience(newTotalExp);
+
+      // Check for level up
+      if (newLevelData.level > oldLevelData.level) {
+        eventBus.emit("player.level.up", {
+          oldLevel: oldLevelData.level,
+          newLevel: newLevelData.level,
+          totalExp: newTotalExp,
+        });
+      }
+    },
+
+    // Register the experience system
+    registerExperienceSystem: () => {
+      set((state) => ({
+        systems: {
+          ...state.systems,
+          experienceSystem,
+        },
+      }));
     },
   }))
 );
