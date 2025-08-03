@@ -46,6 +46,7 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
         target: "decayed-skeleton",
         amount: 5,
         isFirstTimeOnly: true,
+        current: 0,
       },
     ],
   },

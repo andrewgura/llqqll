@@ -306,10 +306,11 @@ export interface QuestObjective {
   id: string;
   description: string;
   completed: boolean;
-  target: string; //monster name
+  target: string; // monster name
   amount: number;
-  isFirstTimeOnly?: boolean; // From first completetion only
-  isRepeatableReward?: boolean; // Not given on first completetion; given on all repeat completion if quest is repeatable
+  current: number; // NEW: Track current progress (e.g., 3 out of 5 skeletons killed)
+  isFirstTimeOnly?: boolean; // From first completion only
+  isRepeatableReward?: boolean; // Not given on first completion; given on all repeat completion if quest is repeatable
 }
 
 /**
@@ -317,6 +318,7 @@ export interface QuestObjective {
  */
 export interface Quest {
   id: string;
+  readyToTurnIn?: boolean;
   title: string;
   description: string;
   objectives: QuestObjective[];

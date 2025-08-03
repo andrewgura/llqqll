@@ -51,6 +51,22 @@ const QuestLog: React.FC = () => {
     return completedQuests.length; // Simple calculation for now
   };
 
+  // Calculate quest progress based on actual progress, not just completed objectives
+  const calculateQuestProgress = (
+    quest: Quest
+  ): { current: number; total: number; percentage: number } => {
+    let totalCurrent = 0;
+    let totalRequired = 0;
+
+    quest.objectives.forEach((objective) => {
+      totalCurrent += objective.current;
+      totalRequired += objective.amount;
+    });
+
+    const percentage = totalRequired > 0 ? (totalCurrent / totalRequired) * 100 : 0;
+    return { current: totalCurrent, total: totalRequired, percentage };
+  };
+
   useEventBus("quests.toggle", (data: { visible: boolean }) => {
     setVisible(data.visible);
   });
@@ -187,15 +203,13 @@ const QuestLog: React.FC = () => {
               const quest = activeQuests.find((q) => q.id === selectedQuest);
               if (!quest) return null;
 
+              const questProgress = calculateQuestProgress(quest);
               const completedObjectives = quest.objectives.filter((obj) => obj.completed).length;
               const totalObjectives = quest.objectives.length;
-              const progressPercentage =
-                totalObjectives > 0 ? (completedObjectives / totalObjectives) * 100 : 0;
-              const isComplete = quest.completed;
 
               return (
                 <div
-                  className={`side-quest-item ${isComplete ? "completed" : ""}`}
+                  className={`side-quest-item ${quest.completed ? "completed" : ""} ${quest.readyToTurnIn ? "ready-to-turn-in" : ""}`}
                   ref={(el) => (questItemRefs.current[quest.id] = el)}
                 >
                   <div className="side-quest-header">
@@ -213,7 +227,16 @@ const QuestLog: React.FC = () => {
                         className={`objective ${objective.completed ? "completed" : ""}`}
                       >
                         <span className="objective-status">{objective.completed ? "✓" : "○"}</span>
-                        <span className="objective-text">{objective.description}</span>
+                        <span className="objective-text">
+                          {objective.description}
+                          {/* Show current progress for kill objectives */}
+                          {objective.target && (
+                            <span className="objective-progress">
+                              {" "}
+                              ({objective.current}/{objective.amount})
+                            </span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -221,19 +244,22 @@ const QuestLog: React.FC = () => {
                   {/* Progress */}
                   <div className="side-quest-progress">
                     <div className="side-quest-progress-text">
-                      Progress: {completedObjectives}/{totalObjectives} objectives
+                      Progress: {questProgress.current}/{questProgress.total} kills (
+                      {completedObjectives}/{totalObjectives} objectives)
                     </div>
                     <div className="side-quest-progress-bar-container">
                       <div
                         className="side-quest-progress-bar-fill"
-                        style={{ width: `${progressPercentage}%` }}
+                        style={{ width: `${questProgress.percentage}%` }}
                       ></div>
                     </div>
                   </div>
 
                   {/* Status */}
                   <div className="side-quest-status">
-                    {isComplete ? (
+                    {quest.readyToTurnIn ? (
+                      <span className="status-ready">Ready to Turn In</span>
+                    ) : quest.completed ? (
                       <span className="status-complete">Completed</span>
                     ) : (
                       <span className="status-active">In Progress</span>

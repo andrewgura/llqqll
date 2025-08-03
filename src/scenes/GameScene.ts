@@ -105,6 +105,8 @@ export class GameScene extends Phaser.Scene {
       // Initialize game systems
       this.initializeGameSystems();
 
+      store.initializeQuestSystem();
+
       // Setup input handlers
       this.setupInputHandlers();
 

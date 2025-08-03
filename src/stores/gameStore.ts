@@ -104,11 +104,13 @@ export interface GameState {
   getItemInstanceById: (instanceId: string) => ItemInstance | undefined;
   addItemInstanceToInventory: (itemInstance: ItemInstance) => boolean;
   removeItemInstanceFromInventory: (instanceId: string, quantity?: number) => boolean;
-  updatePlayerGold: (amount: number) => void;
+  updatePlayerGold: (amount: number, isAdditive?: boolean) => void;
   updatePlayerMaxCapacity: (amount: number) => void;
   updatePlayerCurrentCapacity: (amount: number) => void;
   recalculateStats: () => void;
   acceptQuest: (questId: string) => void;
+  updateQuestProgress: (monsterId: string) => void;
+  initializeQuestSystem: () => void;
 }
 
 // Helper functions for calculating stats
@@ -181,51 +183,56 @@ const calculateEquipmentBonuses = (equipment: PlayerCharacterEquipment) => {
   return bonuses;
 };
 
-// SIMPLIFIED: Calculate total stats with much cleaner move speed
+// Calculate total stats including base, equipment, and skills
 const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): CalculatedStats => {
   const skills = playerCharacter.skills;
 
-  // Base values from skills and player stats
-  const baseHealth = playerCharacter.maxHealth;
-  const baseMana = (skills.mana?.level || 10) * 10;
-  const basePower = 0;
+  // Base stats
+  const baseHealth = 100;
+  const baseMana = 100;
+  const basePower = 5;
   const baseArmor = 0;
-  const baseCapacity = playerCharacter.maxCapacity;
-  const baseHealthRegen = skills.healthRegen?.level || 1;
-  const baseManaRegen = skills.manaRegen?.level || 1;
-  const baseAttackSpeed = skills.attackSpeed?.level || 1;
+  const baseMoveSpeed = 250; // SIMPLIFIED: Single base move speed
+  const baseAttackSpeed = 100;
+  const baseHealthRegen = 1;
+  const baseManaRegen = 2;
+  const baseCapacity = 20;
 
-  // SIMPLIFIED: Move speed calculation
-  const baseMoveSpeed = 250; // Base player move speed
-  const moveSpeedSkillLevel = skills.moveSpeed?.level || 1;
-  const skillBonus = moveSpeedSkillLevel - 1; // Each level above 1 adds +1
-  const totalMoveSpeed = Math.max(50, baseMoveSpeed + skillBonus + equipmentBonuses.moveSpeed);
+  // Skill bonuses (simplified)
+  const skillHealthBonus = (skills.health?.level || 1) * 5;
+  const skillManaBonus = (skills.mana?.level || 1) * 10;
+  const skillPowerBonus = (skills.power?.level || 1) * 2;
+  const skillArmorBonus = (skills.armor?.level || 1) * 1;
+  const skillMoveSpeedBonus = (skills.moveSpeed?.level || 1) * 5;
+  const skillAttackSpeedBonus = (skills.attackSpeed?.level || 1) * 2;
+  const skillHealthRegenBonus = (skills.healthRegen?.level || 1) * 0.5;
+  const skillManaRegenBonus = (skills.manaRegen?.level || 1) * 1;
+  const skillCapacityBonus = (skills.capacity?.level || 1) * 2;
 
   return {
-    totalHealth: baseHealth + equipmentBonuses.health,
-    totalMana: baseMana + equipmentBonuses.mana,
-    totalPower: basePower + equipmentBonuses.power,
-    totalArmor: baseArmor + equipmentBonuses.armor,
-    totalMoveSpeed: totalMoveSpeed, // Single value for both display and movement
-    totalAttackSpeed: baseAttackSpeed + equipmentBonuses.attackSpeed,
-    totalHealthRegen: baseHealthRegen + equipmentBonuses.healthRegen,
-    totalManaRegen: baseManaRegen + equipmentBonuses.manaRegen,
-    totalCapacity: baseCapacity + equipmentBonuses.capacity,
+    totalHealth: baseHealth + skillHealthBonus + equipmentBonuses.health,
+    totalMana: baseMana + skillManaBonus + equipmentBonuses.mana,
+    totalPower: basePower + skillPowerBonus + equipmentBonuses.power,
+    totalArmor: baseArmor + skillArmorBonus + equipmentBonuses.armor,
+    totalMoveSpeed: baseMoveSpeed + skillMoveSpeedBonus + equipmentBonuses.moveSpeed,
+    totalAttackSpeed: baseAttackSpeed + skillAttackSpeedBonus + equipmentBonuses.attackSpeed,
+    totalHealthRegen: baseHealthRegen + skillHealthRegenBonus + equipmentBonuses.healthRegen,
+    totalManaRegen: baseManaRegen + skillManaRegenBonus + equipmentBonuses.manaRegen,
+    totalCapacity: baseCapacity + skillCapacityBonus + equipmentBonuses.capacity,
     equipmentBonuses,
   };
 };
 
-// SIMPLIFIED: Initial calculated stats with base 250 move speed
-const initialCalculatedStats: CalculatedStats = {
+const initialCalculatedStats = {
   totalHealth: 100,
   totalMana: 100,
-  totalPower: 0,
+  totalPower: 5,
   totalArmor: 0,
-  totalMoveSpeed: 325, // Base move speed of 250
-  totalAttackSpeed: 1,
+  totalMoveSpeed: 250,
+  totalAttackSpeed: 100,
   totalHealthRegen: 1,
-  totalManaRegen: 1,
-  totalCapacity: 40,
+  totalManaRegen: 2,
+  totalCapacity: 20,
   equipmentBonuses: {
     health: 0,
     mana: 0,
@@ -294,6 +301,7 @@ const initialState = {
       // Utility skills
       capacity: { level: 1, experience: 0, maxExperience: 15 },
       mana: { level: 10, experience: 0, maxExperience: 15 },
+      health: { level: 1, experience: 0, maxExperience: 15 },
     },
     gold: 100,
     maxCapacity: 40,
@@ -361,33 +369,6 @@ export const useGameStore = create<GameState>()(
         },
       }));
       eventBus.emit("playerCharacter.experience.changed", experience);
-    },
-
-    acceptQuest: (questId) => {
-      const quest = questService.createQuestFromDefinition(questId);
-      if (!quest) {
-        console.error(`Quest definition not found: ${questId}`);
-        return;
-      }
-
-      set((state) => {
-        // Check if quest is already active
-        const isAlreadyActive = state.quests.active.some((q) => q.id === questId);
-        if (isAlreadyActive) {
-          return state;
-        }
-
-        const newActiveQuests = [...state.quests.active, quest];
-
-        eventBus.emit("quest.accepted", quest);
-
-        return {
-          quests: {
-            ...state.quests,
-            active: newActiveQuests,
-          },
-        };
-      });
     },
 
     updatePlayerLevel: (level) => {
@@ -680,6 +661,129 @@ export const useGameStore = create<GameState>()(
           calculatedStats,
         };
       });
+    },
+
+    // Quest methods
+    acceptQuest: (questId) => {
+      const quest = questService.createQuestFromDefinition(questId);
+      if (!quest) {
+        console.error(`Quest definition not found: ${questId}`);
+        return;
+      }
+
+      set((state) => {
+        // Check if quest is already active
+        const isAlreadyActive = state.quests.active.some((q) => q.id === questId);
+        if (isAlreadyActive) {
+          return state;
+        }
+
+        const newActiveQuests = [...state.quests.active, quest];
+
+        eventBus.emit("quest.accepted", quest);
+
+        return {
+          quests: {
+            ...state.quests,
+            active: newActiveQuests,
+          },
+        };
+      });
+    },
+
+    // NEW: Update quest progress when monsters are killed
+    updateQuestProgress: (monsterId: string) => {
+      set((state) => {
+        // Find active quests that have objectives matching the killed monster
+        const updatedActiveQuests = state.quests.active.map((quest) => {
+          const updatedObjectives = quest.objectives.map((objective) => {
+            // Check if this objective targets the killed monster
+            if (objective.target === monsterId && !objective.completed) {
+              const newCurrent = objective.current + 1;
+              const isCompleted = newCurrent >= objective.amount;
+
+              return {
+                ...objective,
+                current: newCurrent,
+                completed: isCompleted,
+              };
+            }
+            return objective;
+          });
+
+          // Check if all objectives are completed
+          const allObjectivesCompleted = updatedObjectives.every((obj) => obj.completed);
+
+          return {
+            ...quest,
+            objectives: updatedObjectives,
+            // Mark as ready to turn in instead of completed
+            readyToTurnIn: allObjectivesCompleted,
+            completed: false, // Keep as false until manually turned in
+          };
+        });
+
+        // DON'T move quests to completed array automatically
+        // Emit events for ready-to-turn-in quests
+        const readyQuests = updatedActiveQuests.filter(
+          (quest) => quest.readyToTurnIn && !quest.completed
+        );
+        readyQuests.forEach((quest) => {
+          eventBus.emit("quest.ready.to.turn.in", quest);
+        });
+
+        // Emit progress update event
+        eventBus.emit("quest.progress.updated", {
+          monsterId,
+          activeQuests: updatedActiveQuests.length,
+          readyQuests: readyQuests.length,
+        });
+
+        return {
+          quests: {
+            active: updatedActiveQuests,
+            completed: state.quests.completed, // No changes to completed
+          },
+        };
+      });
+    },
+
+    // 3. Add method to manually turn in quests
+    turnInQuest: (questId: string) => {
+      set((state) => {
+        const questIndex = state.quests.active.findIndex((q) => q.id === questId);
+        if (questIndex === -1) return state;
+
+        const quest = state.quests.active[questIndex];
+        if (!quest.readyToTurnIn) return state;
+
+        // Mark as completed and move to completed array
+        const completedQuest = { ...quest, completed: true, readyToTurnIn: false };
+        const updatedActive = [...state.quests.active];
+        updatedActive.splice(questIndex, 1);
+
+        eventBus.emit("quest.turned.in", completedQuest);
+
+        return {
+          quests: {
+            active: updatedActive,
+            completed: [...state.quests.completed, completedQuest],
+          },
+        };
+      });
+    },
+
+    // NEW: Initialize quest system and event listeners
+    initializeQuestSystem: () => {
+      // Listen for monster death events
+      eventBus.on("monster.died", (data: any) => {
+        if (data?.type) {
+          // Call updateQuestProgress with the monster type (e.g., "decayed-skeleton")
+          get().updateQuestProgress(data.type);
+        }
+      });
+
+      console.log("Quest progress tracking initialized");
     },
   }))
 );
