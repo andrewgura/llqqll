@@ -380,6 +380,8 @@ const SkillsWindow: React.FC = () => {
     const totalExp = playerCharacter.experience;
     const levelData = experienceSystem.calculateLevelFromExperience(totalExp);
 
+    console.log(levelData);
+
     const progressPercent =
       levelData.expForNextLevel > 0
         ? Math.floor((levelData.currentExp / levelData.expForNextLevel) * 100)

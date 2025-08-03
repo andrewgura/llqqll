@@ -23,8 +23,6 @@ class ExperienceSystemService {
   private initialize(): void {
     // Listen for monster death events
     eventBus.on("monster.died", this.handleMonsterKilled.bind(this));
-
-    console.log("Experience System initialized");
   }
 
   /**
@@ -199,14 +197,6 @@ class ExperienceSystemService {
    */
   getActivePopups(): ExperiencePopup[] {
     return [...this.activePopups];
-  }
-
-  /**
-   * Manually award experience (for testing or special events)
-   */
-  debugAwardExperience(amount: number): void {
-    // Award experience at center of screen
-    this.awardExperience(amount, window.innerWidth / 2, window.innerHeight / 2);
   }
 }
 
