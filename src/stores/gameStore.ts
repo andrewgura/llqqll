@@ -201,17 +201,16 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   const baseAttackSpeed = 0;
   const baseHealthRegen = 1;
   const baseManaRegen = 2;
-  const baseCapacity = 20;
 
   // Skill bonuses (simplified)
-  const skillHealthBonus = skills.health?.level || 1;
-  const skillManaBonus = skills.mana?.level || 1;
-  const skillPowerBonus = skills.power?.level || 1;
-  const skillArmorBonus = skills.armor?.level || 1;
-  const skillMoveSpeedBonus = skills.moveSpeed?.level || 1;
-  const skillAttackSpeedBonus = skills.attackSpeed?.level || 1;
-  const skillHealthRegenBonus = skills.healthRegen?.level || 1;
-  const skillManaRegenBonus = skills.manaRegen?.level || 1;
+  const skillHealthBonus = skills.health?.level || 0;
+  const skillManaBonus = skills.mana?.level || 0;
+  const skillPowerBonus = skills.power?.level || 0;
+  const skillArmorBonus = skills.armor?.level || 0;
+  const skillMoveSpeedBonus = skills.moveSpeed?.level || 0;
+  const skillAttackSpeedBonus = skills.attackSpeed?.level || 0;
+  const skillHealthRegenBonus = skills.healthRegen?.level || 0;
+  const skillManaRegenBonus = skills.manaRegen?.level || 0;
 
   return {
     totalHealth: baseHealth + skillHealthBonus + equipmentBonuses.health,
