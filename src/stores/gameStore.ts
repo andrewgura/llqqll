@@ -19,7 +19,6 @@ import {
 import { questService } from "@/services/QuestService";
 import { experienceSystem } from "@/services/ExperienceSystem";
 
-// SIMPLIFIED: Calculate stats interface with single move speed
 export interface CalculatedStats {
   // Total stats including base + equipment + skills
   totalHealth: number;
@@ -30,7 +29,6 @@ export interface CalculatedStats {
   totalAttackSpeed: number;
   totalHealthRegen: number;
   totalManaRegen: number;
-  totalCapacity: number;
 
   // Equipment bonuses only
   equipmentBonuses: {
@@ -42,7 +40,6 @@ export interface CalculatedStats {
     attackSpeed: number;
     healthRegen: number;
     manaRegen: number;
-    capacity: number;
     melee: number;
   };
 }
@@ -215,7 +212,6 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   const skillAttackSpeedBonus = skills.attackSpeed?.level || 1;
   const skillHealthRegenBonus = skills.healthRegen?.level || 1;
   const skillManaRegenBonus = skills.manaRegen?.level || 1;
-  const skillCapacityBonus = skills.capacity?.level || 1;
 
   return {
     totalHealth: baseHealth + skillHealthBonus + equipmentBonuses.health,
@@ -226,7 +222,6 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
     totalAttackSpeed: baseAttackSpeed + skillAttackSpeedBonus + equipmentBonuses.attackSpeed,
     totalHealthRegen: baseHealthRegen + skillHealthRegenBonus + equipmentBonuses.healthRegen,
     totalManaRegen: baseManaRegen + skillManaRegenBonus + equipmentBonuses.manaRegen,
-    totalCapacity: baseCapacity + skillCapacityBonus + equipmentBonuses.capacity,
     equipmentBonuses,
   };
 };
@@ -240,7 +235,6 @@ const initialCalculatedStats = {
   totalAttackSpeed: 0,
   totalHealthRegen: 1,
   totalManaRegen: 2,
-  totalCapacity: 20,
   equipmentBonuses: {
     health: 0,
     mana: 0,
@@ -250,7 +244,6 @@ const initialCalculatedStats = {
     attackSpeed: 0,
     healthRegen: 0,
     manaRegen: 0,
-    capacity: 0,
     melee: 0,
   },
 };

@@ -292,8 +292,6 @@ const SkillsWindow: React.FC = () => {
         return calculatedStats.totalHealthRegen;
       case "manaRegen":
         return calculatedStats.totalManaRegen;
-      case "capacity":
-        return calculatedStats.totalCapacity;
       default:
         return 0;
     }
@@ -355,7 +353,6 @@ const SkillsWindow: React.FC = () => {
     moveSpeed: "👟",
     healthRegen: "💗",
     manaRegen: "💦",
-    capacity: "📦",
     attackSpeed: "💨",
   };
 
@@ -482,7 +479,6 @@ const SkillsWindow: React.FC = () => {
           {/* Main Skills Tab */}
           {activeTab === SkillTab.MAIN && (
             <div className="skills-wrapper">
-              {/* NEW: Add total experience display at the top */}
               <TotalExperienceDisplay />
 
               <SkillRow
@@ -575,13 +571,6 @@ const SkillsWindow: React.FC = () => {
                     statName="Mana"
                     baseValue={getTotalStatValue("mana")}
                     icon={secondaryStatIcons.mana}
-                  />
-
-                  <SecondaryStatRow
-                    statId="capacity"
-                    statName="Capacity"
-                    baseValue={getTotalStatValue("capacity")}
-                    icon={secondaryStatIcons.capacity}
                   />
                 </div>
 
