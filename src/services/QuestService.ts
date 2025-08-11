@@ -50,6 +50,37 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
       },
     ],
   },
+  BigBonesKiller: {
+    id: "BigBonesKiller",
+    title: "Big Bones Killer",
+    description: "Kill Big Bones",
+    type: "kill",
+    isRepeatable: true,
+    rewards: [
+      {
+        name: "goldCoins",
+        amount: 10,
+      },
+      {
+        name: "questPoints",
+        amount: 2,
+      },
+      {
+        name: "boneShield",
+        isFirstTimeOnly: true,
+      },
+    ],
+    objectives: [
+      {
+        id: "kill-bigbones",
+        description: "Kill Big Bones",
+        target: "big-bones",
+        amount: 1,
+        isFirstTimeOnly: true,
+        current: 0,
+      },
+    ],
+  },
 };
 
 class QuestService {

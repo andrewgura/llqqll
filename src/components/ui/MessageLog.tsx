@@ -201,7 +201,7 @@ const MessageLog: React.FC = () => {
           <div className="no-messages">
             {activeTab === "combat" && "No combat messages yet."}
             {activeTab === "event" && "No events yet."}
-            {activeTab === "chat" && "Chat system coming soon..."}
+            {activeTab === "chat" && ""}
           </div>
         ) : (
           filteredMessages.map((message) => (

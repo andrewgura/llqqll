@@ -28,6 +28,10 @@ export interface NPCData {
   quests?: QuestType;
   isMainQuestGiver?: boolean;
   isQuestGiver?: boolean;
+  isWarriorTrainer?: boolean;
+  isMageTrainer?: boolean;
+  isArcherTrainer?: boolean;
+  isStatSeller?: boolean;
 }
 
 const NPC_DATA: Record<string, NPCData> = {
@@ -64,6 +68,9 @@ const NPC_DATA: Record<string, NPCData> = {
       side: [
         {
           name: "SkeletonKiller",
+        },
+        {
+          name: "BigBonesKiller",
         },
       ],
       main: null,

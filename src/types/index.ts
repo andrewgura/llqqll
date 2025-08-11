@@ -242,7 +242,6 @@ export enum ItemType {
   PRODUCT = "product",
 }
 
-// UPDATED: Equipment now stores ItemInstance instead of ItemData to preserve bonuses
 export interface PlayerCharacterEquipment {
   weapon: ItemInstance | null;
   shield: ItemInstance | null;
@@ -293,6 +292,13 @@ export interface PlayerCharacterState {
   maxCapacity: number;
   currentCapacity: number;
   teleportPosition?: { x: number; y: number };
+}
+
+// Classes
+export enum Classes {
+  WARRIOR = "warrior",
+  MAGE = "mage",
+  RANGER = "ranger",
 }
 
 // ======================================================
