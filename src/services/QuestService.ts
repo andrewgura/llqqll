@@ -14,8 +14,8 @@ export interface QuestDefinition {
 interface Rewards {
   name: string;
   amount?: number;
-  isFirstTimeOnly?: boolean; // From first completetion only
-  isRepeatableReward?: boolean; // Not given on first completetion; given on all repeat completion if quest is repeatable
+  isFirstTimeOnly?: boolean; // From first completion only
+  isRepeatableReward?: boolean; // Not given on first completion; given on all repeat completion if quest is repeatable
 }
 
 const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
@@ -33,6 +33,11 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
       {
         name: "questPoints",
         amount: 2,
+      },
+      {
+        name: "experience",
+        amount: 100,
+        isFirstTimeOnly: true,
       },
       {
         name: "boneShield",

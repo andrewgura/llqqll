@@ -282,6 +282,115 @@
   &.completed {
     border-left: 4px solid @success;
   }
+
+  &.ready-to-turn-in {
+    border-left: 4px solid #ffaa00;
+  }
+
+  /* Rewards section within quest items */
+  .quest-rewards {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid @border-primary;
+
+    h5 {
+      color: @text-primary;
+      font-size: 14px;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      .textShadow();
+    }
+
+    .rewards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .reward-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      .transition();
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.4);
+        border-color: @text-highlight;
+      }
+
+      .reward-image {
+        width: 40px;
+        height: 40px;
+        border: 1px solid @border-primary;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: @bg-primary;
+        flex-shrink: 0;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+
+        img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
+        }
+
+        &.quest-points {
+          background: linear-gradient(135deg, #ffd700, #ffed4e);
+          border-color: #ffd700;
+          box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+
+          .quest-points-icon {
+            font-size: 20px;
+            color: #ffffff;
+            .textShadow();
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+          }
+        }
+
+        .placeholder-image {
+          font-size: 20px;
+          color: @text-secondary;
+          font-weight: bold;
+        }
+      }
+
+      .reward-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex-grow: 1;
+
+        .reward-name {
+          color: @text-primary;
+          font-weight: bold;
+          font-size: 13px;
+          .textShadow();
+        }
+
+        .reward-amount {
+          color: @gold-color;
+          font-weight: bold;
+          font-size: 12px;
+          .textShadow();
+        }
+
+        .reward-note {
+          color: @text-secondary;
+          font-size: 11px;
+          font-style: italic;
+        }
+      }
+    }
+  }
 }
 
 .side-quest-header {
@@ -312,28 +421,134 @@
   font-size: 14px;
 }
 
+/* Enhanced quest objectives for better readability */
+.quest-objectives {
+  margin: 15px 0;
+
+  h5 {
+    color: @text-primary;
+    font-size: 14px;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    .textShadow();
+  }
+
+  .objective {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    &.completed {
+      background-color: rgba(46, 204, 113, 0.1);
+      border-color: rgba(46, 204, 113, 0.2);
+
+      .objective-text {
+        text-decoration: line-through;
+        color: @text-secondary;
+      }
+
+      .objective-status {
+        color: @success;
+      }
+    }
+
+    .objective-status {
+      color: @text-highlight;
+      font-weight: bold;
+      min-width: 16px;
+      font-size: 14px;
+    }
+
+    .objective-text {
+      color: @text-primary;
+      line-height: 1.4;
+      font-size: 13px;
+    }
+
+    .objective-progress {
+      color: @text-highlight;
+      font-weight: bold;
+    }
+  }
+}
+
+/* Enhanced progress bar */
 .side-quest-progress {
   margin: 15px 0;
+
+  .side-quest-progress-text {
+    color: @text-primary;
+    font-size: 13px;
+    margin-bottom: 8px;
+    .textShadow();
+  }
+
+  .side-quest-progress-bar-container {
+    height: 20px;
+    background-color: @bg-primary;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid @border-primary;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .side-quest-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #35a855, #2a7a3f);
+    transition: width 0.3s ease;
+    box-shadow: 0 2px 4px rgba(53, 168, 85, 0.3);
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.2) 100%
+      );
+    }
+  }
 }
 
-.side-quest-progress-text {
-  margin-bottom: 5px;
+/* Additional enhancement for quest status visibility */
+.side-quest-status {
+  margin-top: 15px;
+  text-align: center;
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: bold;
   font-size: 14px;
-  color: @text-primary;
-}
+  .textShadow();
 
-.side-quest-progress-bar-container {
-  height: 20px;
-  background-color: @bg-primary;
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid @border-primary;
-}
+  .status-ready {
+    color: #ffaa00;
+    background-color: rgba(255, 170, 0, 0.1);
+    border: 1px solid rgba(255, 170, 0, 0.3);
+  }
 
-.side-quest-progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(to right, #35a855, #2a7a3f);
-  transition: width 0.3s ease;
+  .status-complete {
+    color: @success;
+    background-color: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+  }
+
+  .status-active {
+    color: @text-highlight;
+    background-color: rgba(106, 181, 255, 0.1);
+    border: 1px solid rgba(106, 181, 255, 0.3);
+  }
 }
 
 .side-quest-type-tag {
@@ -341,6 +556,11 @@
   font-size: 12px;
   font-style: italic;
   color: @text-secondary;
+}
+
+.status-ready {
+  color: #ffaa00; /* Orange/gold color for ready to turn in */
+  font-weight: bold;
 }
 
 /* Riddles Styles */
@@ -433,6 +653,7 @@
   .textShadow();
 }
 
+/* Enhanced Quest Giver Dialog Styles */
 .quest-giver-dialog-overlay {
   position: fixed;
   top: 0;
@@ -451,9 +672,12 @@
   border: 2px solid @border-primary;
   border-radius: 8px;
   padding: 20px;
-  max-width: 500px;
-  min-width: 400px;
-  color: @text-primary;
+  max-width: 600px;
+  max-height: 80vh;
+  width: 90%;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  .scrollbarStyle();
 }
 
 .quest-giver-header {
@@ -461,109 +685,404 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  border-bottom: 1px solid @border-primary;
   padding-bottom: 10px;
+  border-bottom: 1px solid @border-primary;
+
+  h3 {
+    color: @text-highlight;
+    font-size: 20px;
+    margin: 0;
+    .textShadow();
+  }
+
+  .close-button {
+    background: @ui-element;
+    border: 1px solid @border-primary;
+    color: @text-primary;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    .transition();
+
+    &:hover {
+      background-color: lighten(@ui-element, 10%);
+      color: @text-highlight;
+    }
+  }
 }
 
-.quest-list p {
-  margin-bottom: 20px;
-  color: @text-secondary;
+/* Quest List Styles */
+.quest-list {
+  p {
+    color: @text-secondary;
+    margin-bottom: 20px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
 }
 
 .quest-options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .quest-option {
-  padding: 12px;
-  background-color: @ui-element;
+  background-color: rgba(30, 35, 48, 0.5);
   border: 1px solid @border-primary;
-  border-radius: 4px;
-  color: @text-primary;
+  border-radius: 6px;
+  padding: 15px;
   cursor: pointer;
-  transition: all 0.2s;
+  .transition();
 
   &:hover {
-    background-color: lighten(@ui-element, 10%);
-    color: @text-highlight;
+    background-color: rgba(30, 35, 48, 0.8);
+    border-color: @text-highlight;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
-  &.decline {
-    background-color: @bg-primary;
-    color: @text-secondary;
+  &.completed {
+    opacity: 0.7;
+    border-color: @text-secondary;
+  }
+
+  &.ready-to-turn-in {
+    border-left: 4px solid @success;
+  }
+
+  &.in-progress {
+    border-left: 4px solid @text-highlight;
   }
 }
 
-.quest-details {
-  .quest-description {
-    margin: 15px 0;
-    color: @text-secondary;
-    line-height: 1.5;
+.quest-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .quest-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: @text-primary;
+    .textShadow();
   }
 
-  .quest-objectives {
-    margin: 20px 0;
+  .quest-status {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    .textShadow();
+  }
+}
 
-    h5 {
-      margin-bottom: 10px;
+.quest-description-preview {
+  color: @text-secondary;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Quest Details Styles */
+.quest-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quest-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .back-button {
+    background: @ui-element;
+    border: 1px solid @border-primary;
+    color: @text-primary;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    .transition();
+
+    &:hover {
+      background-color: lighten(@ui-element, 10%);
       color: @text-highlight;
     }
+  }
 
-    ul {
-      list-style: none;
-      padding: 0;
+  .quest-status-badge {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.3);
+    .textShadow();
+  }
+}
 
-      li {
-        padding: 5px 0;
+.quest-content {
+  h4 {
+    color: @text-highlight;
+    font-size: 18px;
+    margin: 0 0 10px 0;
+    .textShadow();
+  }
+
+  .quest-description {
+    color: @text-secondary;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  h5 {
+    color: @text-primary;
+    font-size: 14px;
+    margin: 15px 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+}
+
+/* Progress Bar Styles */
+.quest-progress {
+  margin: 15px 0;
+
+  .quest-progress-text {
+    color: @text-primary;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .quest-progress-bar-container {
+    height: 20px;
+    background-color: @bg-primary;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid @border-primary;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .quest-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #35a855, #2a7a3f);
+    transition: width 0.3s ease;
+    box-shadow: 0 2px 4px rgba(53, 168, 85, 0.3);
+  }
+}
+
+/* Rewards Styles for Quest Giver Dialog */
+.quest-details .quest-rewards {
+  .rewards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .reward-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid @border-primary;
+
+    .reward-image {
+      width: 48px;
+      height: 48px;
+      border: 1px solid @border-primary;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: @bg-primary;
+      flex-shrink: 0;
+
+      img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      &.quest-points {
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        border-color: #ffd700;
+
+        .quest-points-icon {
+          font-size: 24px;
+          color: #ffffff;
+          .textShadow();
+        }
+      }
+
+      .placeholder-image {
+        font-size: 24px;
+        color: @text-secondary;
+        font-weight: bold;
+      }
+    }
+
+    .reward-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .reward-name {
         color: @text-primary;
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      .reward-amount {
+        color: @gold-color;
+        font-weight: bold;
+        font-size: 13px;
+      }
+
+      .reward-note {
+        color: @text-secondary;
+        font-size: 12px;
+        font-style: italic;
       }
     }
   }
+}
 
-  .quest-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid @border-primary;
+/* Action Buttons */
+.quest-actions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid @border-primary;
+  display: flex;
+  justify-content: center;
+
+  button {
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    .transition();
+    min-width: 150px;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
   }
 
   .accept-button {
-    padding: 10px 20px;
-    background-color: @success;
-    border: none;
-    border-radius: 4px;
+    background: linear-gradient(135deg, @success, darken(@success, 10%));
     color: white;
-    cursor: pointer;
-    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(46, 204, 113, 0.3);
 
-    &:hover {
-      background-color: lighten(@success, 10%);
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, lighten(@success, 5%), @success);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(46, 204, 113, 0.4);
     }
   }
 
-  .back-button {
-    padding: 10px 20px;
-    background-color: @bg-primary;
-    border: 1px solid @border-primary;
-    border-radius: 4px;
-    color: @text-primary;
-    cursor: pointer;
+  .in-progress-button {
+    background: linear-gradient(135deg, @text-highlight, darken(@text-highlight, 10%));
+    color: white;
+    box-shadow: 0 2px 4px rgba(106, 181, 255, 0.3);
+  }
 
-    &:hover {
-      background-color: lighten(@bg-primary, 10%);
+  .turn-in-button {
+    background: linear-gradient(135deg, @gold-color, darken(@gold-color, 10%));
+    color: @bg-primary;
+    box-shadow: 0 2px 4px rgba(255, 210, 128, 0.3);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, lighten(@gold-color, 5%), @gold-color);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(255, 210, 128, 0.4);
+    }
+  }
+
+  .completed-button {
+    background: linear-gradient(135deg, @text-secondary, darken(@text-secondary, 10%));
+    color: white;
+    box-shadow: 0 2px 4px rgba(149, 165, 166, 0.3);
+  }
+}
+
+/* Responsive adjustments for smaller quest log */
+@media (max-width: 1200px) {
+  .side-quest-item {
+    .quest-rewards {
+      .reward-item {
+        .reward-image {
+          width: 36px;
+          height: 36px;
+
+          img {
+            width: 28px;
+            height: 28px;
+          }
+
+          &.quest-points .quest-points-icon {
+            font-size: 18px;
+          }
+        }
+
+        .reward-info {
+          .reward-name {
+            font-size: 12px;
+          }
+
+          .reward-amount {
+            font-size: 11px;
+          }
+
+          .reward-note {
+            font-size: 10px;
+          }
+        }
+      }
     }
   }
 }
 
-.status-ready {
-  color: #ffaa00; /* Orange/gold color for ready to turn in */
-  font-weight: bold;
-}
+/* Responsive adjustments for quest giver dialog */
+@media (max-width: 768px) {
+  .quest-giver-dialog {
+    width: 95%;
+    max-height: 90vh;
+    padding: 15px;
+  }
 
-.side-quest-item.ready-to-turn-in {
-  border-left: 4px solid #ffaa00;
+  .quest-option-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .quest-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .quest-details .quest-rewards .rewards-list {
+    .reward-item {
+      .reward-image {
+        width: 40px;
+        height: 40px;
+
+        img {
+          width: 32px;
+          height: 32px;
+        }
+      }
+    }
+  }
 }

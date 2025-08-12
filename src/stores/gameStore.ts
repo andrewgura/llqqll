@@ -18,6 +18,7 @@ import {
 } from "@/utils/SkillProgressionFormula";
 import { questService } from "@/services/QuestService";
 import { experienceSystem } from "@/services/ExperienceSystem";
+import { questRewardService } from "@/services/QuestRewardService";
 
 export interface CalculatedStats {
   // Total stats including base + equipment + skills
@@ -46,7 +47,6 @@ export interface CalculatedStats {
 
 // Define the store state structure
 export interface GameState {
-  // Player properties
   playerCharacter: {
     health: number;
     maxHealth: number;
@@ -62,6 +62,7 @@ export interface GameState {
       };
     };
     gold: number;
+    questPoints: number;
     maxCapacity: number;
     currentCapacity: number;
     teleportPosition?: { x: number; y: number };
@@ -88,34 +89,50 @@ export interface GameState {
   // System references
   systems?: Record<string, any>;
 
-  // Methods
+  // System Methods
   registerSystem: (name: string, system: any) => void;
+
+  // Player State Methods
   updatePlayerMap: (mapKey: string) => void;
   updatePlayerHealth: (health: number) => void;
   updatePlayerMaxHealth: (maxHealth: number) => void;
   updatePlayerExperience: (experience: number) => void;
   updatePlayerLevel: (level: number) => void;
   setPlayerCharacterEquipment: (equipment: PlayerCharacterEquipment, source?: string) => void;
-  setInputFocused: (focused: boolean) => void;
-  updateSetCollections: (collections: SetCollectionData) => void;
-  updateSkill: (skillId: string, newExperience: number) => void;
-  getItemInstanceById: (instanceId: string) => ItemInstance | undefined;
-  addItemInstanceToInventory: (itemInstance: ItemInstance) => boolean;
-  removeItemInstanceFromInventory: (instanceId: string, quantity?: number) => boolean;
   updatePlayerGold: (amount: number, isAdditive?: boolean) => void;
   updatePlayerMaxCapacity: (amount: number) => void;
   updatePlayerCurrentCapacity: (amount: number) => void;
+  updatePlayerQuestPoints: (amount: number, isAdditive?: boolean) => void;
+  getPlayerQuestPoints: () => number;
+
+  // Experience Methods
+  awardExperience: (amount: number, x?: number, y?: number) => void;
+  getPlayerLevelFromExperience: () => any;
+  updatePlayerExperienceAndLevel: (newTotalExp: number) => void;
+  registerExperienceSystem: () => void;
+
+  // UI Methods
+  setInputFocused: (focused: boolean) => void;
+
+  // Collection Methods
+  updateSetCollections: (collections: SetCollectionData) => void;
+
+  // Skill Methods
+  updateSkill: (skillId: string, newExperience: number) => void;
+
+  // Inventory Methods
+  getItemInstanceById: (instanceId: string) => ItemInstance | undefined;
+  addItemInstanceToInventory: (itemInstance: ItemInstance) => boolean;
+  removeItemInstanceFromInventory: (instanceId: string, quantity?: number) => boolean;
+
+  // Stats Methods
   recalculateStats: () => void;
+
+  // Quest Methods
   acceptQuest: (questId: string) => void;
   updateQuestProgress: (monsterId: string) => void;
+  turnInQuest: (questId: string) => void;
   initializeQuestSystem: () => void;
-  awardExperience: (amount: number, x?: number, y?: number) => void;
-  getPlayerLevelFromExperience: () => {
-    level: number;
-    currentExp: number;
-    expForNextLevel: number;
-  };
-  updatePlayerExperienceAndLevel: (newTotalExp: number) => void;
 }
 
 // Helper functions for calculating stats
@@ -286,7 +303,8 @@ const initialState = {
       magic: { level: 1, experience: 0, maxExperience: 15 },
       shield: { level: 1, experience: 0, maxExperience: 20 },
     },
-    gold: 100,
+    gold: 0,
+    questPoints: 0,
     maxCapacity: 40,
     currentCapacity: 10,
   },
@@ -372,6 +390,28 @@ export const useGameStore = create<GameState>()(
           calculatedStats,
         };
       });
+    },
+
+    updatePlayerQuestPoints: (questPointValue: number, isAdditive: boolean = true) => {
+      set((state) => {
+        const newQuestPoints = isAdditive
+          ? Math.max(0, state.playerCharacter.questPoints + questPointValue)
+          : Math.max(0, questPointValue);
+
+        return {
+          playerCharacter: {
+            ...state.playerCharacter,
+            questPoints: newQuestPoints,
+          },
+        };
+      });
+
+      const currentQuestPoints = get().playerCharacter.questPoints;
+      eventBus.emit("playerCharacter.questPoints.changed", currentQuestPoints);
+    },
+
+    getPlayerQuestPoints: () => {
+      return get().playerCharacter.questPoints;
     },
 
     // SIMPLIFIED: Equipment - handles ItemInstance with simplified move speed events
@@ -722,17 +762,134 @@ export const useGameStore = create<GameState>()(
     turnInQuest: (questId: string) => {
       set((state) => {
         const questIndex = state.quests.active.findIndex((q) => q.id === questId);
-        if (questIndex === -1) return state;
+        if (questIndex === -1) {
+          console.error(`Quest ${questId} not found in active quests`);
+          return state;
+        }
 
         const quest = state.quests.active[questIndex];
-        if (!quest.readyToTurnIn) return state;
+        if (!quest.readyToTurnIn) {
+          console.error(`Quest ${questId} is not ready to turn in`);
+          return state;
+        }
 
-        // Mark as completed and move to completed array
-        const completedQuest = { ...quest, completed: true, readyToTurnIn: false };
+        // Check if this is the first completion of this quest
+        const hasCompletedBefore = state.quests.completed.some((q) => q.id === questId);
+        const isFirstCompletion = !hasCompletedBefore;
+
+        // Create game store actions interface for the reward service
+        const gameStoreActions = {
+          updatePlayerGold: (amount: number) => {
+            get().updatePlayerGold(amount, false); // false = set absolute value
+          },
+          updatePlayerQuestPoints: (amount: number) => {
+            get().updatePlayerQuestPoints(amount, false); // false = set absolute value
+          },
+          addItemInstanceToInventory: (itemInstance: any) => {
+            return get().addItemInstanceToInventory(itemInstance);
+          },
+          awardExperience: (amount: number, x?: number, y?: number) => {
+            get().awardExperience(amount, x, y); // Use the existing awardExperience method
+          },
+          getPlayerCharacter: () => {
+            const currentState = get();
+            return {
+              gold: currentState.playerCharacter.gold,
+              questPoints: currentState.playerCharacter.questPoints,
+            };
+          },
+        };
+
+        // Distribute quest rewards
+        try {
+          const rewardResult = questRewardService.distributeQuestRewards(
+            questId,
+            isFirstCompletion,
+            gameStoreActions
+          );
+
+          if (rewardResult.success) {
+            // Show the reward summary message
+            eventBus.emit("ui.message.show", rewardResult.message);
+
+            // Log reward details for debugging
+            console.log("Quest rewards distributed:", rewardResult);
+
+            // Emit detailed reward events for UI updates
+            if (rewardResult.goldReceived > 0) {
+              eventBus.emit("player.gold.received", {
+                amount: rewardResult.goldReceived,
+                source: "quest",
+                questId,
+              });
+            }
+
+            if (rewardResult.questPointsReceived > 0) {
+              eventBus.emit("player.questPoints.updated", {
+                amount: rewardResult.questPointsReceived,
+                source: "quest",
+                questId,
+              });
+            }
+
+            if (rewardResult.experienceReceived > 0) {
+              eventBus.emit("player.experience.received", {
+                amount: rewardResult.experienceReceived,
+                source: "quest",
+                questId,
+              });
+            }
+
+            if (rewardResult.itemsReceived.length > 0) {
+              eventBus.emit("player.items.received", {
+                items: rewardResult.itemsReceived,
+                source: "quest",
+                questId,
+              });
+            }
+
+            if (rewardResult.itemsDropped.length > 0) {
+              eventBus.emit("player.items.dropped", {
+                items: rewardResult.itemsDropped,
+                source: "quest",
+                questId,
+                reason: "inventory_full",
+              });
+            }
+          } else {
+            // Reward distribution failed
+            eventBus.emit(
+              "ui.message.show",
+              `Failed to distribute quest rewards: ${rewardResult.message}`
+            );
+            console.error("Quest reward distribution failed:", rewardResult);
+          }
+        } catch (error) {
+          console.error("Error during quest reward distribution:", error);
+          eventBus.emit("ui.message.show", "Error occurred while distributing quest rewards");
+          eventBus.emit("error.quest.turn.in", {
+            questId,
+            error,
+          });
+        }
+
+        // Mark quest as completed and move to completed array
+        const completedQuest = {
+          ...quest,
+          completed: true,
+          readyToTurnIn: false,
+          completedAt: new Date().toISOString(), // Add completion timestamp
+        };
+
         const updatedActive = [...state.quests.active];
         updatedActive.splice(questIndex, 1);
 
+        // Emit quest completion events
         eventBus.emit("quest.turned.in", completedQuest);
+        eventBus.emit("quest.completed", {
+          quest: completedQuest,
+          isFirstCompletion,
+        });
 
         return {
           quests: {

@@ -1,8 +1,10 @@
-// src/components/ui/QuestLog.tsx
+// Enhanced QuestLog.tsx with Rewards Section
 import React, { useState, useEffect, useRef } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { useGameStore } from "../../stores/gameStore";
 import { Quest } from "../../types";
+import { questService } from "../../services/QuestService";
+import { ItemDictionary } from "../../services/ItemDictionaryService";
 
 enum QuestTab {
   MAIN = "main",
@@ -41,14 +43,17 @@ const QuestLog: React.FC = () => {
   const emitEvent = useEmitEvent();
 
   // Get quests from game store
-  const activeQuests = useGameStore((state) => state.quests.active);
-  const completedQuests = useGameStore((state) => state.quests.completed);
+  const { activeQuests, completedQuests, questPoints } = useGameStore((state) => ({
+    activeQuests: state.quests.active,
+    completedQuests: state.quests.completed,
+    questPoints: state.playerCharacter.questPoints || 0,
+  }));
 
   const maxPages = Math.max(1);
 
-  // Calculate total quest points (from completed quests)
+  // Calculate total quest points (from player character)
   const calculateTotalQuestPoints = (): number => {
-    return completedQuests.length; // Simple calculation for now
+    return questPoints; // Use actual quest points from player character
   };
 
   // Calculate quest progress based on actual progress, not just completed objectives
@@ -63,8 +68,22 @@ const QuestLog: React.FC = () => {
       totalRequired += objective.amount;
     });
 
-    const percentage = totalRequired > 0 ? (totalCurrent / totalRequired) * 100 : 0;
+    const percentage = totalRequired > 0 ? Math.round((totalCurrent / totalRequired) * 100) : 0;
     return { current: totalCurrent, total: totalRequired, percentage };
+  };
+
+  // Helper functions for rewards display
+  const getItemImage = (itemName: string): string => {
+    const item = ItemDictionary.getItem(itemName);
+    if (!item?.texture) return "";
+
+    const folder = ItemDictionary.getItemFolder(item);
+    return `assets/equipment/${folder}/${item.texture}.png`;
+  };
+
+  const getItemDisplayName = (itemName: string): string => {
+    const item = ItemDictionary.getItem(itemName);
+    return item?.name || itemName;
   };
 
   useEventBus("quests.toggle", (data: { visible: boolean }) => {
@@ -207,6 +226,9 @@ const QuestLog: React.FC = () => {
               const completedObjectives = quest.objectives.filter((obj) => obj.completed).length;
               const totalObjectives = quest.objectives.length;
 
+              // Get quest definition for rewards
+              const questDefinition = questService.getQuestDefinition(quest.id);
+
               return (
                 <div
                   className={`side-quest-item ${quest.completed ? "completed" : ""} ${quest.readyToTurnIn ? "ready-to-turn-in" : ""}`}
@@ -254,6 +276,79 @@ const QuestLog: React.FC = () => {
                       ></div>
                     </div>
                   </div>
+
+                  {/* Rewards Section - NEW! */}
+                  {questDefinition &&
+                    questDefinition.rewards &&
+                    questDefinition.rewards.length > 0 && (
+                      <div className="quest-rewards">
+                        <h5>Rewards:</h5>
+                        <div className="rewards-list">
+                          {questDefinition.rewards.map((reward, index) => {
+                            // Handle special reward types
+                            if (reward.name === "goldCoins") {
+                              return (
+                                <div key={index} className="reward-item">
+                                  <div className="reward-image">
+                                    <img
+                                      src="assets/equipment/valuables/gold-coins.png"
+                                      alt="Gold Coins"
+                                    />
+                                  </div>
+                                  <div className="reward-info">
+                                    <span className="reward-name">Gold Coins</span>
+                                    {reward.amount && (
+                                      <span className="reward-amount">x{reward.amount}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (reward.name === "questPoints") {
+                              return (
+                                <div key={index} className="reward-item">
+                                  <div className="reward-image quest-points">
+                                    <span className="quest-points-icon">★</span>
+                                  </div>
+                                  <div className="reward-info">
+                                    <span className="reward-name">Quest Points</span>
+                                    {reward.amount && (
+                                      <span className="reward-amount">x{reward.amount}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // Handle item rewards
+                            const itemImage = getItemImage(reward.name);
+                            const itemName = getItemDisplayName(reward.name);
+
+                            return (
+                              <div key={index} className="reward-item">
+                                <div className="reward-image">
+                                  {itemImage ? (
+                                    <img src={itemImage} alt={itemName} />
+                                  ) : (
+                                    <div className="placeholder-image">?</div>
+                                  )}
+                                </div>
+                                <div className="reward-info">
+                                  <span className="reward-name">{itemName}</span>
+                                  {reward.amount && (
+                                    <span className="reward-amount">x{reward.amount}</span>
+                                  )}
+                                  {reward.isFirstTimeOnly && (
+                                    <span className="reward-note">(First time only)</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                   {/* Status */}
                   <div className="side-quest-status">
