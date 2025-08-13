@@ -70,7 +70,7 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
         description: "Kill 25 Decayed Skeletons",
         target: "decayed-skeleton",
         amount: 25,
-        isRepeatableReward: true,
+        isRepeatObjective: true,
         current: 0,
       },
     ],
