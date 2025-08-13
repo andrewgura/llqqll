@@ -317,6 +317,7 @@ export interface QuestObjective {
   current: number; // NEW: Track current progress (e.g., 3 out of 5 skeletons killed)
   isFirstTimeOnly?: boolean; // From first completion only
   isRepeatableReward?: boolean; // Not given on first completion; given on all repeat completion if quest is repeatable
+  isRepeatObjective?: boolean;
 }
 
 /**

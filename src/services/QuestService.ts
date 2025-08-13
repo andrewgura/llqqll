@@ -29,10 +29,22 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
       {
         name: "goldCoins",
         amount: 10,
+        isFirstTimeOnly: true,
       },
       {
         name: "questPoints",
         amount: 2,
+        isFirstTimeOnly: true,
+      },
+      {
+        name: "questPoints",
+        amount: 2,
+        isRepeatableReward: true,
+      },
+      {
+        name: "shinySkull",
+        amount: 2,
+        isRepeatableReward: true,
       },
       {
         name: "experience",
@@ -53,6 +65,14 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
         isFirstTimeOnly: true,
         current: 0,
       },
+      {
+        id: "kill-skeletons",
+        description: "Kill 25 Decayed Skeletons",
+        target: "decayed-skeleton",
+        amount: 25,
+        isRepeatableReward: true,
+        current: 0,
+      },
     ],
   },
   BigBonesKiller: {
@@ -60,7 +80,7 @@ const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
     title: "Big Bones Killer",
     description: "Kill Big Bones",
     type: "kill",
-    isRepeatable: true,
+    isRepeatable: false,
     rewards: [
       {
         name: "goldCoins",
