@@ -311,13 +311,23 @@ export enum Classes {
 export interface QuestObjective {
   id: string;
   description: string;
-  completed: boolean;
-  target: string; // monster name
+  target?: string;
   amount: number;
-  current: number; // Track current progress (e.g., 3 out of 5 skeletons killed)
+  current: number;
+  completed: boolean;
   isFirstTimeOnly?: boolean; // From first completion only
   isRepeatableReward?: boolean; // Not given on first completion; given on all repeat completion if quest is repeatable
-  isRepeatObjective?: boolean;
+  isRepeatObjective?: boolean; // Required for repeat completions
+}
+
+/**
+ * Quest completion history tracking
+ */
+export interface QuestCompletionHistory {
+  completionCount: number;
+  firstCompletedAt?: number; // timestamp
+  lastCompletedAt?: number; // timestamp
+  isRepeatable: boolean;
 }
 
 /**
@@ -330,6 +340,7 @@ export interface Quest {
   description: string;
   objectives: QuestObjective[];
   completed: boolean;
+  completionHistory?: QuestCompletionHistory; // New field for tracking completions
 }
 
 /**
@@ -338,6 +349,7 @@ export interface Quest {
 export interface QuestState {
   active: Quest[];
   completed: Quest[];
+  completionHistory: Record<string, QuestCompletionHistory>; // Track completion history globally
 }
 
 // ======================================================

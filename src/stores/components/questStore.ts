@@ -1,7 +1,7 @@
-// src/stores/stores/questStore.ts
+// src/stores/components/questStore.ts
 import { StateCreator } from "zustand";
 import { GameState, QuestState } from "../types/gameTypes";
-import { Quest } from "../../types";
+import { Quest, QuestCompletionHistory } from "../../types";
 import { questService } from "../../services/QuestService";
 import { questRewardService } from "../../services/QuestRewardService";
 import { eventBus } from "../../utils/EventBus";
@@ -11,6 +11,7 @@ import { InventoryStore } from "./inventoryStore";
 const initialQuestState: QuestState = {
   active: [],
   completed: [],
+  completionHistory: {},
 };
 
 export interface QuestStore {
@@ -22,6 +23,7 @@ export interface QuestStore {
   updateQuestProgress: (monsterId: string) => void;
   turnInQuest: (questId: string) => void;
   initializeQuestSystem: () => void;
+  canRepeatQuest: (questId: string) => boolean;
 }
 
 export const createQuestStore: StateCreator<
@@ -33,7 +35,6 @@ export const createQuestStore: StateCreator<
   // Initial state
   quests: initialQuestState,
 
-  // EXACT COPY from original gameStore
   acceptQuest: (questId) => {
     const quest = questService.createQuestFromDefinition(questId);
     if (!quest) {
@@ -41,17 +42,42 @@ export const createQuestStore: StateCreator<
       return;
     }
 
-    set((state) => ({
-      quests: {
-        ...state.quests,
-        active: [...state.quests.active, quest],
-      },
-    }));
+    // Get quest definition to check if it's repeatable
+    const questDefinition = questService.getQuestDefinition(questId);
+    const isRepeatable = questDefinition?.isRepeatable || false;
+
+    set((state) => {
+      // Initialize completion history if it doesn't exist
+      let updatedCompletionHistory = { ...state.quests.completionHistory };
+      if (!updatedCompletionHistory[questId]) {
+        updatedCompletionHistory[questId] = {
+          completionCount: 0,
+          isRepeatable,
+        };
+      }
+
+      // For repeatable quests, filter objectives based on completion status
+      let questToAdd = { ...quest };
+      if (questDefinition && updatedCompletionHistory[questId].completionCount > 0) {
+        // This is a repeat - only show repeat objectives
+        questToAdd.objectives = quest.objectives.filter((obj) => obj.isRepeatObjective);
+      } else {
+        // This is first time - only show first-time objectives
+        questToAdd.objectives = quest.objectives.filter((obj) => !obj.isRepeatObjective);
+      }
+
+      return {
+        quests: {
+          ...state.quests,
+          active: [...state.quests.active, questToAdd],
+          completionHistory: updatedCompletionHistory,
+        },
+      };
+    });
 
     eventBus.emit("quest.accepted", quest);
   },
 
-  // EXACT COPY from original gameStore
   updateQuestProgress: (monsterId) => {
     set((state) => {
       const updatedActiveQuests = state.quests.active.map((quest) => {
@@ -92,14 +118,13 @@ export const createQuestStore: StateCreator<
 
       return {
         quests: {
+          ...state.quests,
           active: updatedActiveQuests,
-          completed: state.quests.completed,
         },
       };
     });
   },
 
-  // EXACT COPY from original gameStore
   turnInQuest: (questId) => {
     set((state) => {
       const questIndex = state.quests.active.findIndex((q) => q.id === questId);
@@ -114,9 +139,9 @@ export const createQuestStore: StateCreator<
         return state;
       }
 
-      // Check if this is the first completion of this quest
-      const hasCompletedBefore = state.quests.completed.some((q) => q.id === questId);
-      const isFirstCompletion = !hasCompletedBefore;
+      // Get completion history
+      const completionHistory = state.quests.completionHistory[questId];
+      const isFirstCompletion = !completionHistory || completionHistory.completionCount === 0;
 
       // Create game store actions interface for the reward service
       const gameStoreActions = {
@@ -194,38 +219,71 @@ export const createQuestStore: StateCreator<
         eventBus.emit("ui.message.show", "Error processing quest rewards");
       }
 
+      // Update completion history
+      const now = Date.now();
+      const updatedCompletionHistory = {
+        ...completionHistory,
+        completionCount: (completionHistory?.completionCount || 0) + 1,
+        firstCompletedAt: completionHistory?.firstCompletedAt || now,
+        lastCompletedAt: now,
+        isRepeatable: completionHistory?.isRepeatable || false,
+      };
+
       // Mark the quest as completed
-      const completedQuest = { ...quest, completedAt: Date.now() };
+      const completedQuest = {
+        ...quest,
+        completed: true,
+        completionHistory: updatedCompletionHistory,
+      };
 
       // Update quest state
       const newActiveQuests = state.quests.active.filter((q) => q.id !== questId);
-      let newCompletedQuests = state.quests.completed;
 
-      if (hasCompletedBefore) {
+      // Update completed quests - replace existing or add new
+      const existingCompletedIndex = state.quests.completed.findIndex((q) => q.id === questId);
+      let newCompletedQuests;
+
+      if (existingCompletedIndex >= 0) {
         // Update existing completed quest
-        newCompletedQuests = state.quests.completed.map((q) =>
-          q.id === questId ? completedQuest : q
-        );
+        newCompletedQuests = [...state.quests.completed];
+        newCompletedQuests[existingCompletedIndex] = completedQuest;
       } else {
-        // Add to completed quests
+        // Add new completed quest
         newCompletedQuests = [...state.quests.completed, completedQuest];
       }
 
       eventBus.emit("quest.turned.in", {
         quest: completedQuest,
         isFirstCompletion,
+        completionCount: updatedCompletionHistory.completionCount,
       });
 
       return {
         quests: {
           active: newActiveQuests,
           completed: newCompletedQuests,
+          completionHistory: {
+            ...state.quests.completionHistory,
+            [questId]: updatedCompletionHistory,
+          },
         },
       };
     });
   },
 
-  // EXACT COPY from original gameStore
+  // Helper method to check if quest can be repeated
+  canRepeatQuest: (questId: string): boolean => {
+    const state = get();
+    const questDefinition = questService.getQuestDefinition(questId);
+    const completionHistory = state.quests.completionHistory[questId];
+
+    return !!(
+      questDefinition?.isRepeatable &&
+      completionHistory?.completionCount > 0 &&
+      !state.quests.active.some((q) => q.id === questId)
+    );
+  },
+
   initializeQuestSystem: () => {
     // Listen for monster death events
     eventBus.on("monster.died", (data: any) => {

@@ -1,3 +1,4 @@
+// src/components/ui/QuestGiverDialog.tsx
 import React, { useState, useEffect } from "react";
 import { questService, QuestDefinition } from "../../services/QuestService";
 import { useGameStore } from "../../stores/gameStore";
@@ -17,6 +18,7 @@ interface QuestStatus {
   status: "available" | "in-progress" | "ready-to-turn-in" | "completed";
   quest?: Quest;
   definition: QuestDefinition;
+  completionCount: number;
 }
 
 const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
@@ -30,14 +32,16 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "details">("list");
 
   // Get quest-related actions from store
-  const { acceptQuest, turnInQuest, quests } = useGameStore((state) => ({
+  const { acceptQuest, turnInQuest, quests, canRepeatQuest } = useGameStore((state) => ({
     acceptQuest: state.acceptQuest,
     turnInQuest: state.turnInQuest,
     quests: state.quests,
+    canRepeatQuest: state.canRepeatQuest,
   }));
 
   const activeQuests = quests.active;
   const completedQuests = quests.completed;
+  const completionHistory = quests.completionHistory || {};
 
   // Reset view mode when dialog opens
   useEffect(() => {
@@ -47,7 +51,7 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
     }
   }, [visible]);
 
-  // Determine quest statuses
+  // Determine quest statuses with repeatable logic
   const questStatuses: QuestStatus[] = availableQuests
     .map((questId) => {
       const definition = questService.getQuestDefinition(questId);
@@ -55,6 +59,7 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
 
       const activeQuest = activeQuests.find((q) => q.id === questId);
       const completedQuest = completedQuests.find((q) => q.id === questId);
+      const completion = completionHistory[questId];
 
       let status: QuestStatus["status"] = "available";
 
@@ -64,8 +69,13 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
         } else {
           status = "in-progress";
         }
-      } else if (completedQuest && !definition.isRepeatable) {
-        status = "completed";
+      } else if (completedQuest) {
+        if (definition.isRepeatable) {
+          // For repeatable quests, show as available if can be repeated
+          status = canRepeatQuest && canRepeatQuest(questId) ? "available" : "completed";
+        } else {
+          status = "completed";
+        }
       }
 
       return {
@@ -73,6 +83,7 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
         status,
         quest: activeQuest,
         definition,
+        completionCount: completion?.completionCount || 0,
       };
     })
     .filter(Boolean) as QuestStatus[];
@@ -105,10 +116,12 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
     setViewMode("list");
   };
 
-  const getQuestStatusText = (status: QuestStatus["status"]) => {
+  const getQuestStatusText = (questStatus: QuestStatus) => {
+    const { status, completionCount } = questStatus;
+
     switch (status) {
       case "available":
-        return "Available";
+        return completionCount > 0 ? "Repeatable" : "Available";
       case "in-progress":
         return "In Progress";
       case "ready-to-turn-in":
@@ -160,8 +173,41 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
     });
 
     const percentage = totalRequired > 0 ? Math.round((totalCurrent / totalRequired) * 100) : 0;
-
     return { current: totalCurrent, total: totalRequired, percentage };
+  };
+
+  // Helper function to get visible objectives based on completion status
+  const getVisibleObjectives = (definition: QuestDefinition, completionCount: number) => {
+    if (!definition?.objectives) return [];
+
+    const isFirstTime = completionCount === 0;
+
+    return definition.objectives.filter((objective: any) => {
+      if (isFirstTime) {
+        // First completion: show objectives that are NOT repeat-only
+        return !objective.isRepeatObjective;
+      } else {
+        // Repeat completion: show objectives that ARE for repeats
+        return objective.isRepeatObjective;
+      }
+    });
+  };
+
+  // Helper function to get visible rewards based on completion status
+  const getVisibleRewards = (definition: QuestDefinition, completionCount: number) => {
+    if (!definition?.rewards) return [];
+
+    const isFirstTime = completionCount === 0;
+
+    return definition.rewards.filter((reward: any) => {
+      if (isFirstTime) {
+        // First completion: show rewards that are NOT repeatable-only
+        return !reward.isRepeatableReward;
+      } else {
+        // Repeat completion: show rewards that ARE for repeats
+        return reward.isRepeatableReward || (!reward.isFirstTimeOnly && !reward.isRepeatableReward);
+      }
+    });
   };
 
   if (!visible) return null;
@@ -187,12 +233,17 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                   onClick={() => handleQuestSelect(questStatus.id)}
                 >
                   <div className="quest-option-header">
-                    <span className="quest-title">{questStatus.definition.title}</span>
+                    <span className="quest-title">
+                      {questStatus.definition.title}
+                      {questStatus.completionCount > 0 && (
+                        <span> (x{questStatus.completionCount})</span>
+                      )}
+                    </span>
                     <span
                       className="quest-status"
                       style={{ color: getQuestStatusColor(questStatus.status) }}
                     >
-                      {getQuestStatusText(questStatus.status)}
+                      {getQuestStatusText(questStatus)}
                     </span>
                   </div>
                   <div className="quest-description-preview">
@@ -214,19 +265,34 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                 className="quest-status-badge"
                 style={{ color: getQuestStatusColor(selectedQuestStatus.status) }}
               >
-                {getQuestStatusText(selectedQuestStatus.status)}
+                {getQuestStatusText(selectedQuestStatus)}
               </span>
             </div>
 
             <div className="quest-content">
-              <h4>{selectedQuestStatus.definition.title}</h4>
+              <h4>
+                {selectedQuestStatus.definition.title}
+                {selectedQuestStatus.completionCount > 0 && (
+                  <span> (Completed {selectedQuestStatus.completionCount}x)</span>
+                )}
+              </h4>
               <p className="quest-description">{selectedQuestStatus.definition.description}</p>
+              {selectedQuestStatus.definition.isRepeatable && (
+                <p className="repeatable-notice">
+                  <em>This quest can be repeated multiple times.</em>
+                </p>
+              )}
 
-              {/* Objectives */}
+              {/* Objectives - use filtered objectives */}
               <div className="quest-objectives">
                 <h5>Objectives:</h5>
-                {selectedQuestStatus.definition.objectives.map((objective, index) => {
-                  const activeObjective = selectedQuestStatus.quest?.objectives[index];
+                {getVisibleObjectives(
+                  selectedQuestStatus.definition,
+                  selectedQuestStatus.completionCount
+                ).map((objective, index) => {
+                  const activeObjective = selectedQuestStatus.quest?.objectives?.find(
+                    (obj) => obj.id === objective.id
+                  );
                   const isCompleted = activeObjective?.completed || false;
                   const current = activeObjective?.current || 0;
 
@@ -270,11 +336,28 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                 </div>
               )}
 
-              {/* Rewards Section */}
+              {/* Rewards Section - use filtered rewards */}
               <div className="quest-rewards">
-                <h5>Rewards:</h5>
-                <div className="rewards-list">
-                  {selectedQuestStatus.definition.rewards.map((reward, index) => {
+                <h5>
+                  Rewards
+                  {selectedQuestStatus.completionCount > 0 &&
+                    selectedQuestStatus.definition.isRepeatable &&
+                    " (for next completion)"}
+                  :
+                </h5>
+                <div
+                  className="rewards-grid"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "8px",
+                    maxWidth: "720px",
+                  }}
+                >
+                  {getVisibleRewards(
+                    selectedQuestStatus.definition,
+                    selectedQuestStatus.completionCount
+                  ).map((reward, index) => {
                     // Handle special reward types
                     if (reward.name === "goldCoins") {
                       return (
@@ -285,7 +368,7 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                           <div className="reward-info">
                             <span className="reward-name">Gold Coins</span>
                             {reward.amount && (
-                              <span className="reward-amount">x{reward.amount}</span>
+                              <span className="reward-amount">{reward.amount}</span>
                             )}
                           </div>
                         </div>
@@ -301,8 +384,22 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                           <div className="reward-info">
                             <span className="reward-name">Quest Points</span>
                             {reward.amount && (
-                              <span className="reward-amount">x{reward.amount}</span>
+                              <span className="reward-amount">{reward.amount}</span>
                             )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (reward.name === "experience") {
+                      return (
+                        <div key={index} className="reward-item">
+                          <div className="reward-image">
+                            <img src="assets/inventory/exp-icon.png" alt="Experience" />
+                          </div>
+                          <div className="reward-info">
+                            <span className="reward-name">Experience</span>
+                            <span className="reward-amount">{reward.amount}</span>
                           </div>
                         </div>
                       );
@@ -323,10 +420,7 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                         </div>
                         <div className="reward-info">
                           <span className="reward-name">{itemName}</span>
-                          {reward.amount && <span className="reward-amount">x{reward.amount}</span>}
-                          {reward.isFirstTimeOnly && (
-                            <span className="reward-note">(First time only)</span>
-                          )}
+                          {reward.amount && <span className="reward-amount">{reward.amount}</span>}
                         </div>
                       </div>
                     );

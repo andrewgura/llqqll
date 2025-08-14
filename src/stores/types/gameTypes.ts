@@ -1,5 +1,11 @@
 // src/stores/types/gameTypes.ts
-import { PlayerCharacterEquipment, ItemInstance, SetCollectionData, Quest } from "../../types";
+import {
+  PlayerCharacterEquipment,
+  ItemInstance,
+  SetCollectionData,
+  Quest,
+  QuestCompletionHistory,
+} from "../../types";
 
 export interface CalculatedStats {
   // Total stats including base + equipment + skills
@@ -50,6 +56,7 @@ export interface PlayerCharacterState {
 export interface QuestState {
   active: Quest[];
   completed: Quest[];
+  completionHistory: Record<string, QuestCompletionHistory>;
 }
 
 // Core game state structure
