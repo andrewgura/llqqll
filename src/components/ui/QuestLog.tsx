@@ -277,16 +277,14 @@ const QuestLog: React.FC = () => {
                 >
                   <div className="side-quest-header">
                     <div className="side-quest-name">
+                      {quest.completed && <span className="status-text"> (Completed)</span>}{" "}
                       {quest.title}
-                      {quest.completed && <span className="status-text"> (Completed)</span>}
                       {completionInfo?.completionCount > 0 && questDefinition?.isRepeatable && (
                         <span className="completion-info">
-                          {" "}
-                          - Repeatable (Completed {completionInfo.completionCount}x)
+                          (Completed {completionInfo.completionCount}x)
                         </span>
                       )}
                     </div>
-                    <div className="side-quest-reward">Quest Points</div>
                   </div>
                   <div className="side-quest-description">{quest.description}</div>
 
@@ -429,10 +427,10 @@ const QuestLog: React.FC = () => {
 
                   {/* Status */}
                   <div className="side-quest-status">
-                    {quest.readyToTurnIn ? (
-                      <span className="status-ready">Ready to Turn In</span>
-                    ) : quest.completed ? (
+                    {quest.completed ? (
                       <span className="status-complete">Completed</span>
+                    ) : quest.readyToTurnIn ? (
+                      <span className="status-ready">Ready to Turn In</span>
                     ) : (
                       <span className="status-active">In Progress</span>
                     )}

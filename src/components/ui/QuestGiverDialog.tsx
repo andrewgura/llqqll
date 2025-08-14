@@ -277,11 +277,6 @@ const QuestGiverDialog: React.FC<QuestGiverDialogProps> = ({
                 )}
               </h4>
               <p className="quest-description">{selectedQuestStatus.definition.description}</p>
-              {selectedQuestStatus.definition.isRepeatable && (
-                <p className="repeatable-notice">
-                  <em>This quest can be repeated multiple times.</em>
-                </p>
-              )}
 
               {/* Objectives - use filtered objectives */}
               <div className="quest-objectives">
