@@ -1,3 +1,4 @@
+// src/components/ui/UINavBar.tsx
 import React, { useState, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEmitEvent, useEventBus } from "../../hooks/useEventBus";
@@ -9,7 +10,8 @@ export enum NavButtonType {
   ABILITIES = "abilities",
   BACKPACK = "backpack",
   SKILLS = "skills",
-  CREATURES = "creatures", // Added creatures button
+  CREATURES = "creatures",
+  OUTFITS = "outfits", // Added outfits button
 }
 
 // Props for individual navigation button
@@ -53,7 +55,8 @@ const UINavBar: React.FC = () => {
     [NavButtonType.ABILITIES]: false,
     [NavButtonType.BACKPACK]: false,
     [NavButtonType.SKILLS]: false,
-    [NavButtonType.CREATURES]: false, // Added creatures state
+    [NavButtonType.CREATURES]: false,
+    [NavButtonType.OUTFITS]: false, // Added outfits state
   });
 
   // Skills window state
@@ -97,6 +100,13 @@ const UINavBar: React.FC = () => {
       label: "Creatures",
       event: "creatures.toggle",
       shortcutKey: "C",
+    },
+    {
+      type: NavButtonType.OUTFITS,
+      icon: "👕",
+      label: "Outfits",
+      event: "outfits.toggle",
+      shortcutKey: "U",
     },
   ];
 
@@ -155,6 +165,14 @@ const UINavBar: React.FC = () => {
     setActiveButtons((prev) => ({
       ...prev,
       [NavButtonType.CREATURES]: isVisible,
+    }));
+  });
+
+  // Listen for outfits window toggle events
+  useEventBus("outfits.visibility.changed", (isVisible: boolean) => {
+    setActiveButtons((prev) => ({
+      ...prev,
+      [NavButtonType.OUTFITS]: isVisible,
     }));
   });
 

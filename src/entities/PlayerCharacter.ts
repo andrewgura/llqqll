@@ -15,8 +15,23 @@ export class PlayerCharacter extends Character {
   interactionZone: Phaser.GameObjects.Arc | null = null;
   facing: string = "down";
 
+  // ADD: Outfit-related properties
+  private currentOutfitSprite: string = "playerCharacter";
+  private currentTint: number = 0xffffff;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "playerCharacter", "player");
+    // ADD: Get current outfit from store before calling super
+    const store = useGameStore.getState();
+    const outfitData = store.getCurrentOutfitData ? store.getCurrentOutfitData() : null;
+
+    // ADD: Determine sprite to use
+    let spriteKey = "playerCharacter";
+    if (outfitData && outfitData.sprite) {
+      spriteKey = outfitData.sprite;
+    }
+
+    // MODIFY: Use dynamic sprite instead of hardcoded "playerCharacter"
+    super(scene, x, y, spriteKey, "player");
 
     try {
       // Get state from store
@@ -30,6 +45,15 @@ export class PlayerCharacter extends Character {
       store.updatePlayerMaxHealth(this.maxHealth);
 
       this.setOrigin(0.8, 0.8); // Set the sprite to be in the center of tile
+
+      // ADD: Set outfit properties
+      this.currentOutfitSprite = spriteKey;
+      if (store.outfitState) {
+        this.currentTint = store.outfitState.currentTint;
+      }
+
+      // ADD: Apply initial tint
+      this.setTint(this.currentTint);
 
       // Set equipment from store - UPDATED to work with ItemInstance
       const storeEquipment = store.playerCharacter.equipment;
@@ -60,6 +84,9 @@ export class PlayerCharacter extends Character {
       // Listen for equipment changes to update local equipment
       eventBus.on("equipment.changed", this.handleEquipmentChanged.bind(this));
 
+      // ADD: Listen for outfit changes
+      eventBus.on("outfit.changed", this.handleOutfitChanged.bind(this));
+
       // Emit player created event
       eventBus.emit("player.created", {
         health: this.health,
@@ -69,6 +96,154 @@ export class PlayerCharacter extends Character {
     } catch (error) {
       console.error("Error in PlayerCharacter constructor:", error);
       eventBus.emit("error.player.create", { error });
+    }
+  }
+
+  // ADD: Handle outfit change events from the Outfits UI
+  private handleOutfitChanged(data: { outfitId: string; sprite: string; tint: number }): void {
+    try {
+      console.log("PlayerCharacter: Outfit changed", data);
+
+      // Update sprite if changed
+      if (data.sprite !== this.currentOutfitSprite) {
+        this.currentOutfitSprite = data.sprite;
+
+        // Check if the new sprite texture exists
+        if (this.scene.textures.exists(data.sprite)) {
+          this.setTexture(data.sprite);
+          console.log(`PlayerCharacter: Changed sprite to ${data.sprite}`);
+        } else {
+          console.warn(`PlayerCharacter: Sprite ${data.sprite} not found, keeping current sprite`);
+          // Fallback to default sprite
+          this.setTexture("playerCharacter");
+        }
+      }
+
+      // Update tint
+      if (data.tint !== this.currentTint) {
+        this.currentTint = data.tint;
+        this.setTint(data.tint);
+        console.log(`PlayerCharacter: Changed tint to 0x${data.tint.toString(16)}`);
+      }
+
+      // Re-create animations for new sprite if needed
+      this.updateAnimationsForCurrentSprite();
+
+      // Emit update event for other systems
+      eventBus.emit("player.outfit.updated", {
+        sprite: this.currentOutfitSprite,
+        tint: this.currentTint,
+      });
+    } catch (error) {
+      console.error("Error handling outfit change:", error);
+      eventBus.emit("error.player.outfit", { error });
+    }
+  }
+
+  // ADD: Update animations for the current sprite
+  private updateAnimationsForCurrentSprite(): void {
+    try {
+      // Get the current sprite key
+      const spriteKey = this.currentOutfitSprite;
+
+      // Create or update animations for this sprite
+      this.createOutfitAnimations(spriteKey);
+
+      // Play current animation with new sprite
+      if (this.anims.currentAnim) {
+        const currentAnimKey = this.anims.currentAnim.key;
+        // Try to play the same animation with new sprite prefix
+        const newAnimKey = currentAnimKey.replace(/^[^-]+-/, `${spriteKey}-`);
+
+        if (this.scene.anims.exists(newAnimKey)) {
+          this.play(newAnimKey);
+        } else {
+          // Fallback to idle animation
+          this.play(`${spriteKey}-idle-down`);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating animations for outfit:", error);
+    }
+  }
+
+  // ADD: Create animations for a specific outfit sprite
+  private createOutfitAnimations(spriteKey: string): void {
+    try {
+      const scene = this.scene;
+
+      // Only create if they don't already exist
+      if (scene.anims.exists(`${spriteKey}-idle-down`)) {
+        return; // Animations already exist
+      }
+
+      // Only create if sprite exists
+      if (!scene.textures.exists(spriteKey)) {
+        console.warn(`Sprite ${spriteKey} not found, skipping animations`);
+        return;
+      }
+
+      // Idle animations
+      scene.anims.create({
+        key: `${spriteKey}-idle-down`,
+        frames: [{ key: spriteKey, frame: 0 }],
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-idle-left`,
+        frames: [{ key: spriteKey, frame: 6 }],
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-idle-up`,
+        frames: [{ key: spriteKey, frame: 12 }],
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-idle-right`,
+        frames: [{ key: spriteKey, frame: 18 }],
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      // Walking animations
+      scene.anims.create({
+        key: `${spriteKey}-walk-down`,
+        frames: scene.anims.generateFrameNumbers(spriteKey, { frames: [2, 0, 4, 0] }),
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-walk-left`,
+        frames: scene.anims.generateFrameNumbers(spriteKey, { frames: [8, 6, 10, 6] }),
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-walk-up`,
+        frames: scene.anims.generateFrameNumbers(spriteKey, { frames: [14, 12, 16, 12] }),
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      scene.anims.create({
+        key: `${spriteKey}-walk-right`,
+        frames: scene.anims.generateFrameNumbers(spriteKey, { frames: [20, 18, 22, 18] }),
+        frameRate: 10,
+        repeat: -1,
+      });
+
+      console.log(`Created animations for outfit sprite: ${spriteKey}`);
+    } catch (error) {
+      console.error(`Error creating animations for sprite ${spriteKey}:`, error);
     }
   }
 
@@ -143,25 +318,47 @@ export class PlayerCharacter extends Character {
     }
   }
 
+  // MODIFY: Play animation with current outfit sprite
   playAnimation(direction: string, isMoving: boolean): void {
     try {
       if (this.isDead) return;
 
-      const animKey = isMoving ? `walk-${direction}` : `idle-${direction}`;
+      // Use current outfit sprite for animations
+      const animKey = isMoving
+        ? `${this.currentOutfitSprite}-walk-${direction}`
+        : `${this.currentOutfitSprite}-idle-${direction}`;
 
       // Update facing direction
       this.facing = direction;
 
-      // Only play animation if it's not already playing
-      if (!this.anims.isPlaying || this.anims.currentAnim?.key !== animKey) {
-        this.anims.play(animKey, true);
+      // Check if animation exists, fallback to default if not
+      if (this.scene.anims.exists(animKey)) {
+        // Only play animation if it's not already playing
+        if (!this.anims.isPlaying || this.anims.currentAnim?.key !== animKey) {
+          this.anims.play(animKey, true);
 
-        // Emit animation event for React
-        eventBus.emit("player.animation", {
-          direction,
-          isMoving,
-          animation: animKey,
-        });
+          // Emit animation event for React
+          eventBus.emit("player.animation", {
+            direction,
+            isMoving,
+            animation: animKey,
+          });
+        }
+      } else {
+        // Fallback to playerCharacter animations
+        const fallbackKey = isMoving ? `walk-${direction}` : `idle-${direction}`;
+        if (this.scene.anims.exists(fallbackKey)) {
+          if (!this.anims.isPlaying || this.anims.currentAnim?.key !== fallbackKey) {
+            this.anims.play(fallbackKey, true);
+
+            // Emit animation event for React
+            eventBus.emit("player.animation", {
+              direction,
+              isMoving,
+              animation: fallbackKey,
+            });
+          }
+        }
       }
     } catch (error) {
       console.error("Error in PlayerCharacter playAnimation:", error);
@@ -386,6 +583,9 @@ export class PlayerCharacter extends Character {
       this.alpha = 1;
       this.angle = 0;
 
+      // ADD: Reapply current outfit tint
+      this.setTint(this.currentTint);
+
       // Re-enable input
       const inputComponent = this.components.get("input");
       if (inputComponent) {
@@ -406,10 +606,21 @@ export class PlayerCharacter extends Character {
     }
   }
 
+  // ADD: Get current outfit info for debugging
+  getCurrentOutfitInfo(): { sprite: string; tint: number } {
+    return {
+      sprite: this.currentOutfitSprite,
+      tint: this.currentTint,
+    };
+  }
+
   destroy(): void {
     try {
       // Clean up equipment change listener
       eventBus.off("equipment.changed", this.handleEquipmentChanged);
+
+      // ADD: Clean up outfit change listener
+      eventBus.off("outfit.changed", this.handleOutfitChanged);
 
       // Call parent destroy
       super.destroy();

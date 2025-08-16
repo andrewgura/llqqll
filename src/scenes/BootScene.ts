@@ -21,6 +21,7 @@ export class BootScene extends Phaser.Scene {
       // Load assets
       this.loadMapAssets();
       this.loadCharacterAssets();
+      this.loadOutfitAssets(); // ADD: Load outfit assets
       this.loadMonsterAssets();
       this.loadItemAssets();
       this.loadAbilityAssets();
@@ -167,6 +168,30 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
+  // ADD: New method to load outfit sprites
+  loadOutfitAssets(): void {
+    try {
+      // Load skeleton player outfit
+      this.load.spritesheet("skeletonPlayer", "assets/sprites/skeleton-player.png", {
+        frameWidth: 32,
+        frameHeight: 32,
+        margin: 30,
+      });
+
+      // Load outfit preview images
+      this.load.image("default-outfit-preview", "assets/outfit-preview/default-outfit-preview.png");
+      this.load.image(
+        "skeleton-outfit-preview",
+        "assets/outfit-preview/skeleton-outfit-preview.png"
+      );
+
+      // Future outfit sprites can be added here
+    } catch (error) {
+      console.error("Error in BootScene.loadOutfitAssets:", error);
+      this.loadErrors.push(error as Error);
+    }
+  }
+
   loadMonsterAssets(): void {
     try {
       // Get all monster IDs from MonsterDictionary
@@ -177,7 +202,7 @@ export class BootScene extends Phaser.Scene {
       monsterIds.forEach((monsterId) => {
         const monster = monsterData[monsterId];
         if (monster && monster.sprite) {
-          const margin = monster.spriteSize === 32 ? 0 : 30;
+          const margin = monster.spriteSize === 32 ? 30 : 30;
           this.load.spritesheet(monsterId, monster.sprite, {
             frameWidth: 32,
             frameHeight: 32,
@@ -286,67 +311,94 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
+  // MODIFY: Updated to create animations for multiple sprites
   createPlayerCharacterAnimations(): void {
     try {
+      // Create animations for default player character
+      this.createAnimationsForSprite("playerCharacter");
+
+      // Create animations for skeleton outfit (if loaded)
+      if (this.textures.exists("skeletonPlayer")) {
+        this.createAnimationsForSprite("skeletonPlayer");
+      }
+
+      // Future outfits can be added here
+    } catch (error) {
+      console.error("Error in BootScene.createPlayerCharacterAnimations:", error);
+      this.loadErrors.push(error as Error);
+    }
+  }
+
+  // ADD: Create animations for a specific sprite key
+  private createAnimationsForSprite(spriteKey: string): void {
+    try {
+      // Check if sprite exists
+      if (!this.textures.exists(spriteKey)) {
+        console.warn(`Sprite ${spriteKey} not found, skipping animations`);
+        return;
+      }
+
       // Idle animations
       this.anims.create({
-        key: "idle-down",
-        frames: [{ key: "playerCharacter", frame: 0 }],
+        key: `${spriteKey}-idle-down`,
+        frames: [{ key: spriteKey, frame: 0 }],
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "idle-left",
-        frames: [{ key: "playerCharacter", frame: 6 }],
+        key: `${spriteKey}-idle-left`,
+        frames: [{ key: spriteKey, frame: 6 }],
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "idle-up",
-        frames: [{ key: "playerCharacter", frame: 12 }],
+        key: `${spriteKey}-idle-up`,
+        frames: [{ key: spriteKey, frame: 12 }],
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "idle-right",
-        frames: [{ key: "playerCharacter", frame: 18 }],
+        key: `${spriteKey}-idle-right`,
+        frames: [{ key: spriteKey, frame: 18 }],
         frameRate: 10,
         repeat: -1,
       });
 
       // Walking animations
       this.anims.create({
-        key: "walk-down",
-        frames: this.anims.generateFrameNumbers("playerCharacter", { frames: [2, 0, 4, 0] }),
+        key: `${spriteKey}-walk-down`,
+        frames: this.anims.generateFrameNumbers(spriteKey, { frames: [2, 0, 4, 0] }),
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "walk-left",
-        frames: this.anims.generateFrameNumbers("playerCharacter", { frames: [8, 6, 10, 6] }),
+        key: `${spriteKey}-walk-left`,
+        frames: this.anims.generateFrameNumbers(spriteKey, { frames: [8, 6, 10, 6] }),
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "walk-up",
-        frames: this.anims.generateFrameNumbers("playerCharacter", { frames: [14, 12, 16, 12] }),
+        key: `${spriteKey}-walk-up`,
+        frames: this.anims.generateFrameNumbers(spriteKey, { frames: [14, 12, 16, 12] }),
         frameRate: 10,
         repeat: -1,
       });
 
       this.anims.create({
-        key: "walk-right",
-        frames: this.anims.generateFrameNumbers("playerCharacter", { frames: [20, 18, 22, 18] }),
+        key: `${spriteKey}-walk-right`,
+        frames: this.anims.generateFrameNumbers(spriteKey, { frames: [20, 18, 22, 18] }),
         frameRate: 10,
         repeat: -1,
       });
+
+      console.log(`Created animations for sprite: ${spriteKey}`);
     } catch (error) {
-      console.error("Error in BootScene.createPlayerCharacterAnimations:", error);
+      console.error(`Error creating animations for sprite ${spriteKey}:`, error);
       this.loadErrors.push(error as Error);
     }
   }

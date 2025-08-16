@@ -22,6 +22,7 @@ import QuestGiverDialog from "./components/ui/QuestGiverDialog";
 import { eventBus } from "./utils/EventBus";
 import ExperiencePopups from "./components/ui/ExperiencePopup";
 import LevelUpNotification from "./components/ui/LevelUpNotification";
+import Outfits from "./components/ui/Outfits";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -107,6 +108,7 @@ function App() {
               <AbilityInterface />
               <SkillsWindow />
               <Shop />
+              <Outfits />
               <DeathManager />
               <GameItemTooltip />
               <QuestGiverDialog
