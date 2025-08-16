@@ -3,13 +3,7 @@ import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { ItemSets, ItemData } from "@/types";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
-
-interface SetSlot {
-  slotType: string;
-  name: string;
-  position: string;
-  weaponType?: string;
-}
+import { SetSlot, SetConfigUtils } from "@/data/setConfig";
 
 interface SetSlotProps {
   setType: ItemSets;
@@ -71,9 +65,17 @@ interface ConfirmDialogProps {
   isOpen: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  itemName?: string;
+  slotName?: string;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onConfirm, onCancel }) => {
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  isOpen,
+  onConfirm,
+  onCancel,
+  itemName = "",
+  slotName = "",
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -81,7 +83,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onConfirm, onCanc
       <div className="set-confirmation-dialog">
         <div className="set-confirmation-title">Confirm Item Placement</div>
         <div className="set-confirmation-message">
-          Warning, placing the item here will cause you to lose access to it.
+          Place <strong>{itemName}</strong> in the <strong>{slotName}</strong> slot?
+          <br />
+          <em>Warning: This will permanently remove the item from your inventory.</em>
         </div>
         <div className="set-confirmation-buttons">
           <button className="set-confirm-button" onClick={onConfirm}>
@@ -97,7 +101,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, onConfirm, onCanc
 };
 
 const SetCollection: React.FC = () => {
-  const { setCollections, updateSetCollections, playerCharacter } = useGameStore();
+  const { setCollections, updateSetCollections, playerCharacter, removeItemInstanceFromInventory } =
+    useGameStore();
+
   const [visible, setVisible] = useState(false);
   const [currentSetView, setCurrentSetView] = useState<ItemSets>(ItemSets.SKELETAL_SET);
   const [highlightedSlot, setHighlightedSlot] = useState<string | null>(null);
@@ -105,65 +111,25 @@ const SetCollection: React.FC = () => {
     isOpen: false,
     slotType: "",
     itemId: "",
+    itemName: "",
+    slotName: "",
   });
   const emitEvent = useEmitEvent();
 
+  // Listen for toggle events
   useEventBus("setCollection.toggle", (data: { visible: boolean }) => {
     setVisible(data.visible);
   });
-
-  // Set slot definitions - these would vary per set
-  const setSlotDefinitions: Record<string, SetSlot[]> = {
-    [ItemSets.SKELETAL_SET]: [
-      { slotType: "weapon", name: "1H Melee", position: "0 0", weaponType: "melee" },
-      { slotType: "weapon", name: "1H Magic", position: "1 0", weaponType: "magic" },
-      { slotType: "weapon", name: "Ranged", position: "2 0", weaponType: "archery" },
-      { slotType: "shield", name: "Shield", position: "0 1" },
-      { slotType: "armor", name: "Armor", position: "1 1" },
-      { slotType: "helmet", name: "Helmet", position: "2 1" },
-      { slotType: "trinket", name: "Trinket", position: "0 2" },
-      { slotType: "amulet", name: "Amulet", position: "1 2" },
-    ],
-  };
-
-  // Set bonus definitions with exact requirements from the screenshot
-  const setBonusDefinitions: Record<
-    string,
-    Array<{ items: number; bonus: string; value: number }>
-  > = {
-    [ItemSets.SKELETAL_SET]: [
-      { items: 2, bonus: "Melee", value: 1 },
-      { items: 4, bonus: "Health", value: 50 },
-      { items: 6, bonus: "Armor", value: 5 },
-      { items: 8, bonus: "All Stats", value: 2 },
-    ],
-  };
-
-  // Item-specific bonus definitions from ItemDictionaryService
-  const itemBonusDefinitions: Record<string, { bonus: string; value: number }> = {
-    boneClub: { bonus: "Melee", value: 1 },
-    boneWand: { bonus: "Magic", value: 1 },
-    throwableSkull: { bonus: "Archery", value: 1 },
-    boneShield: { bonus: "Armor", value: 1 },
-    skeletalArmor: { bonus: "Health", value: 20 },
-    boneCharm: { bonus: "Regen", value: 2 },
-    skullCap: { bonus: "Mana", value: 20 },
-    skeletalMedallion: { bonus: "Move Speed", value: 200 },
-  };
 
   // Toggle visibility when 'L' key is pressed
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "l") {
         setVisible((prev) => !prev);
-
-        // Emit appropriate message
         emitEvent(
           "ui.message.show",
           !visible ? "Set Collection opened. Press L to close." : "Set Collection closed."
         );
-
-        // Emit visibility change event
         emitEvent("setCollection.visibility.changed", !visible);
       }
     };
@@ -189,25 +155,52 @@ const SetCollection: React.FC = () => {
     e.preventDefault();
 
     // Get item data from dataTransfer
-    const itemId = e.dataTransfer.getData("text/plain");
-    if (!itemId) return;
+    const itemInstanceId = e.dataTransfer.getData("text/plain");
+    if (!itemInstanceId) return;
 
-    // Get item data
-    const item = ItemDictionary.getItem(itemId);
-    if (!item) return;
+    // Get the item instance and its template data
+    const itemInstance = playerCharacter.inventory.find(
+      (item) => item.instanceId === itemInstanceId
+    );
+    if (!itemInstance) return;
 
-    // Check if the item is valid for this slot
-    const isValidForSlot = ItemDictionary.canEquipInSlot(itemId, slotType);
+    const itemData = ItemDictionary.getItem(itemInstance.templateId);
+    if (!itemData) return;
+
+    // Check if the item is valid for this slot using the config
+    const isValidForSlot = SetConfigUtils.canItemGoInSlot(
+      itemInstance.templateId,
+      slotType,
+      currentSetView,
+      itemData
+    );
+
+    // Also check if this specific slot type and weapon type match (for weapon slots)
+    let isValidWeaponType = true;
+    if (slotType === "weapon") {
+      const config = SetConfigUtils.getSetConfig(currentSetView);
+      const slot = config?.slots.find(
+        (s) => s.slotType === slotType && s.weaponType === itemData.weaponType
+      );
+      isValidWeaponType = !!slot;
+    }
 
     // If valid, highlight the slot
-    if (isValidForSlot) {
+    if (isValidForSlot && isValidWeaponType) {
       setHighlightedSlot(slotType);
     }
   };
 
   // Handle drag leave
   const handleDragLeave = (e: React.DragEvent) => {
-    setHighlightedSlot(null);
+    // Only clear highlight if we're actually leaving the slot
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setHighlightedSlot(null);
+    }
   };
 
   // Handle drop
@@ -216,33 +209,94 @@ const SetCollection: React.FC = () => {
     setHighlightedSlot(null);
 
     // Get item data from dataTransfer
-    const itemId = e.dataTransfer.getData("text/plain");
-    if (!itemId) return;
+    const itemInstanceId = e.dataTransfer.getData("text/plain");
+    if (!itemInstanceId) return;
 
-    // Get item data
-    const item = ItemDictionary.getItem(itemId);
-    if (!item) return;
-
-    // Check if the item is valid for this slot
-    const isValidForSlot = ItemDictionary.canEquipInSlot(itemId, slotType);
-
-    if (isValidForSlot) {
-      // Show confirmation dialog
-      setConfirmDialog({
-        isOpen: true,
-        slotType,
-        itemId,
-      });
-    } else {
-      emitEvent("ui.message.show", `This item cannot be placed in the ${slotType} slot.`);
+    // Get the item instance and its template data
+    const itemInstance = playerCharacter.inventory.find(
+      (item) => item.instanceId === itemInstanceId
+    );
+    if (!itemInstance) {
+      emitEvent("ui.message.show", "Item not found in inventory.");
+      return;
     }
+
+    const itemData = ItemDictionary.getItem(itemInstance.templateId);
+    if (!itemData) {
+      emitEvent("ui.message.show", "Invalid item data.");
+      return;
+    }
+
+    // Check if the item is valid for this slot using the config
+    const isValidForSlot = SetConfigUtils.canItemGoInSlot(
+      itemInstance.templateId,
+      slotType,
+      currentSetView,
+      itemData
+    );
+
+    if (!isValidForSlot) {
+      emitEvent("ui.message.show", `${itemData.name} cannot be placed in the ${slotType} slot.`);
+      return;
+    }
+
+    // For weapon slots, check weapon type compatibility
+    if (slotType === "weapon") {
+      const config = SetConfigUtils.getSetConfig(currentSetView);
+      const slot = config?.slots.find(
+        (s) => s.slotType === slotType && s.weaponType === itemData.weaponType
+      );
+
+      if (!slot) {
+        emitEvent(
+          "ui.message.show",
+          `${itemData.name} (${itemData.weaponType}) doesn't match any available weapon slots.`
+        );
+        return;
+      }
+    }
+
+    // Check if slot is already occupied
+    const currentCollectionItems = setCollections[currentSetView] || {};
+    if (currentCollectionItems[slotType] && currentCollectionItems[slotType] !== "") {
+      emitEvent("ui.message.show", `The ${slotType} slot is already occupied.`);
+      return;
+    }
+
+    // Show confirmation dialog
+    const config = SetConfigUtils.getSetConfig(currentSetView);
+    const slotInfo = config?.slots.find((s) => s.slotType === slotType);
+
+    setConfirmDialog({
+      isOpen: true,
+      slotType,
+      itemId: itemInstance.templateId,
+      itemName: itemData.name,
+      slotName: slotInfo?.name || slotType,
+    });
   };
 
   // Handle confirm dialog confirm
   const handleConfirmDialogConfirm = () => {
     const { slotType, itemId } = confirmDialog;
 
-    // Add item to set
+    // Find the item instance in inventory
+    const itemInstance = playerCharacter.inventory.find((item) => item.templateId === itemId);
+    if (!itemInstance) {
+      emitEvent("ui.message.show", "Item no longer found in inventory.");
+      handleConfirmDialogCancel();
+      return;
+    }
+
+    // Remove item from inventory first
+    const removalSuccess = removeItemInstanceFromInventory(itemInstance.instanceId);
+    if (!removalSuccess) {
+      emitEvent("ui.message.show", "Failed to remove item from inventory.");
+      handleConfirmDialogCancel();
+      return;
+    }
+
+    // Add item to set collection
     const newCollections = { ...setCollections };
     if (!newCollections[currentSetView]) {
       newCollections[currentSetView] = {};
@@ -251,13 +305,23 @@ const SetCollection: React.FC = () => {
     newCollections[currentSetView][slotType] = itemId;
     updateSetCollections(newCollections);
 
-    // Get item name
+    // Get item name for message
     const item = ItemDictionary.getItem(itemId);
     if (item) {
       emitEvent(
         "ui.message.show",
-        `Added ${item.name} to ${formatSetName(currentSetView)} collection.`
+        `Added ${item.name} to ${SetConfigUtils.formatSetName(currentSetView)} collection.`
       );
+    }
+
+    // Check if set is now complete
+    const progress = SetConfigUtils.calculateSetProgress(newCollections, currentSetView);
+    if (progress.isComplete) {
+      emitEvent(
+        "ui.message.show",
+        `🎉 ${SetConfigUtils.formatSetName(currentSetView)} set completed!`
+      );
+      // TODO: Unlock outfit when outfit system is implemented
     }
 
     // Close dialog
@@ -265,6 +329,8 @@ const SetCollection: React.FC = () => {
       isOpen: false,
       slotType: "",
       itemId: "",
+      itemName: "",
+      slotName: "",
     });
   };
 
@@ -274,22 +340,20 @@ const SetCollection: React.FC = () => {
       isOpen: false,
       slotType: "",
       itemId: "",
+      itemName: "",
+      slotName: "",
     });
   };
 
-  // Get set bonuses
+  // Get set bonuses with activation status
   const getSetBonuses = () => {
-    // Count collected items
-    const collectionItems = setCollections[currentSetView] || {};
-    const collectedItems = Object.values(collectionItems).filter((id) => id !== "").length;
-    const totalItems = setSlotDefinitions[currentSetView]?.length || 0;
+    const config = SetConfigUtils.getSetConfig(currentSetView);
+    if (!config) return [];
 
-    // Get set bonus definitions
-    const bonuses = setBonusDefinitions[currentSetView] || [];
+    const progress = SetConfigUtils.calculateSetProgress(setCollections, currentSetView);
 
-    // Return bonuses with activation status
-    return bonuses.map((bonusInfo) => {
-      const isActive = collectedItems >= bonusInfo.items;
+    return config.setBonuses.map((bonusInfo) => {
+      const isActive = progress.collectedCount >= bonusInfo.items;
       return {
         ...bonusInfo,
         isActive,
@@ -297,42 +361,19 @@ const SetCollection: React.FC = () => {
     });
   };
 
-  // Check if set is complete
-  const isSetComplete = () => {
-    const collectionItems = setCollections[currentSetView] || {};
-    const collectedItems = Object.values(collectionItems).filter((id) => id !== "").length;
-    const totalItems = setSlotDefinitions[currentSetView]?.length || 0;
-
-    return collectedItems === totalItems;
-  };
-
-  // Format set name for display
-  const formatSetName = (setType: string): string => {
-    return setType
-      .replace(/_/g, " ")
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-  };
-
-  // Format bonus type for display
-  const formatBonusType = (bonusType: string): string => {
-    const formatted = bonusType.replace(/([A-Z])/g, " $1");
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  };
-
   if (!visible) {
     return null;
   }
 
+  // Get current set configuration
+  const currentConfig = SetConfigUtils.getSetConfig(currentSetView);
+  if (!currentConfig) {
+    return <div>Error: Set configuration not found</div>;
+  }
+
   // Get data for current view
   const currentCollectionItems = setCollections[currentSetView] || {};
-
-  // Count collected items
-  const collectedItems = Object.values(currentCollectionItems).filter((id) => id !== "").length;
-  const totalItems = setSlotDefinitions[currentSetView]?.length || 0;
-
-  // Get set bonuses
+  const progress = SetConfigUtils.calculateSetProgress(setCollections, currentSetView);
   const setBonuses = getSetBonuses();
 
   return (
@@ -352,7 +393,7 @@ const SetCollection: React.FC = () => {
             data-set-type={setType}
             onClick={() => handleSetChange(setType as ItemSets)}
           >
-            {formatSetName(setType)}
+            {SetConfigUtils.formatSetName(setType)}
           </div>
         ))}
       </div>
@@ -360,9 +401,9 @@ const SetCollection: React.FC = () => {
       <div className="set-content">
         <div className="set-slots-panel">
           <div className="set-slots-grid">
-            {setSlotDefinitions[currentSetView]?.map((slot) => (
+            {currentConfig.slots.map((slot, index) => (
               <SetSlotComponent
-                key={`${currentSetView}-${slot.slotType}-${slot.position}`}
+                key={`${currentSetView}-${slot.slotType}-${slot.position}-${index}`}
                 setType={currentSetView}
                 slotInfo={slot}
                 itemId={currentCollectionItems[slot.slotType] || ""}
@@ -379,16 +420,20 @@ const SetCollection: React.FC = () => {
       <div className="set-bonuses-panel">
         <div className="set-bonuses-header">
           <div className="set-progress">
-            Set Progress: {collectedItems}/{totalItems}
+            Set Progress: {progress.collectedCount}/{progress.totalSlots}
+            {progress.requiredForCompletion < progress.totalSlots && (
+              <span className="completion-requirement">
+                {" "}
+                (Need {progress.requiredForCompletion} to complete)
+              </span>
+            )}
           </div>
         </div>
 
         <div className="set-bonuses-content">
           <div className="item-bonuses-list">
-            {/* List each set item and its specific bonus */}
-            {Object.entries(itemBonusDefinitions).map(([itemId, bonusInfo], index) => {
+            {Object.entries(currentConfig.itemBonuses).map(([itemId, bonusInfo], index) => {
               const itemData = ItemDictionary.getItem(itemId);
-              // Check if this item is already collected
               const isCollected = Object.values(currentCollectionItems).includes(itemId);
 
               return (
@@ -398,7 +443,8 @@ const SetCollection: React.FC = () => {
                 >
                   <div className="item-bonus-icon">{isCollected ? "✓" : "○"}</div>
                   <div className="item-bonus-text">
-                    {itemData?.name}: +{bonusInfo.value} {formatBonusType(bonusInfo.bonus)}
+                    {itemData?.name}: +{bonusInfo.value}{" "}
+                    {SetConfigUtils.formatBonusType(bonusInfo.bonus)}
                   </div>
                 </div>
               );
@@ -407,10 +453,19 @@ const SetCollection: React.FC = () => {
         </div>
 
         <div className="set-reward-section">
-          <div className="set-reward-title">Complete Set Reward: Skeleton Outfit</div>
-          <div className="set-reward-image">
-            <img src="assets/outfit-preview/skeleton-outfit-preview.png" alt="Skeleton Outfit" />
+          <div className="set-reward-title">
+            {progress.isComplete ? "✅ " : ""}
+            Complete Set Reward: {currentConfig.name} Outfit
           </div>
+          <div className="set-reward-image">
+            <img
+              src={`assets/outfit-preview/${currentConfig.unlockedOutfit || "skeleton-outfit"}-preview.png`}
+              alt={`${currentConfig.name} Outfit`}
+            />
+          </div>
+          {progress.isComplete && (
+            <div className="set-completed-message">🎉 Set Complete! Outfit Unlocked!</div>
+          )}
         </div>
       </div>
 
@@ -419,6 +474,8 @@ const SetCollection: React.FC = () => {
         isOpen={confirmDialog.isOpen}
         onConfirm={handleConfirmDialogConfirm}
         onCancel={handleConfirmDialogCancel}
+        itemName={confirmDialog.itemName}
+        slotName={confirmDialog.slotName}
       />
     </div>
   );
