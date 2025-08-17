@@ -1,3 +1,4 @@
+// src/scenes/BootScene.ts
 import Phaser from "phaser";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
 import { MonsterAnimationSystem } from "@/services/MonsterAnimationSystems";
@@ -21,7 +22,7 @@ export class BootScene extends Phaser.Scene {
       // Load assets
       this.loadMapAssets();
       this.loadCharacterAssets();
-      this.loadOutfitAssets(); // ADD: Load outfit assets
+      this.loadOutfitAssets(); // Load outfit assets
       this.loadMonsterAssets();
       this.loadItemAssets();
       this.loadAbilityAssets();
@@ -168,11 +169,11 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  // ADD: New method to load outfit sprites
+  // FIXED: Load outfit sprites with correct keys and paths
   loadOutfitAssets(): void {
     try {
-      // Load skeleton player outfit
-      this.load.spritesheet("skeletonPlayer", "assets/sprites/skeleton-player.png", {
+      // FIXED: Load skeleton player outfit with correct key and path
+      this.load.spritesheet("skeleton", "assets/sprites/skeleton.png", {
         frameWidth: 32,
         frameHeight: 32,
         margin: 30,
@@ -243,6 +244,7 @@ export class BootScene extends Phaser.Scene {
           color: "#ffffff",
         })
         .setOrigin(0.5);
+
       // Create loading bar
       const progressBar = this.add.graphics();
       const progressBox = this.add.graphics();
@@ -253,6 +255,7 @@ export class BootScene extends Phaser.Scene {
         320,
         50
       );
+
       // Loading progress events
       this.load.on("progress", this.updateLoadingBar, this);
       this.load.on("complete", () => {
@@ -311,15 +314,15 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  // MODIFY: Updated to create animations for multiple sprites
+  // FIXED: Updated to create animations for correct sprite keys
   createPlayerCharacterAnimations(): void {
     try {
       // Create animations for default player character
       this.createAnimationsForSprite("playerCharacter");
 
-      // Create animations for skeleton outfit (if loaded)
-      if (this.textures.exists("skeletonPlayer")) {
-        this.createAnimationsForSprite("skeletonPlayer");
+      // FIXED: Create animations for skeleton outfit (check for correct key)
+      if (this.textures.exists("skeleton")) {
+        this.createAnimationsForSprite("skeleton");
       }
 
       // Future outfits can be added here
@@ -329,7 +332,7 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  // ADD: Create animations for a specific sprite key
+  // Create animations for a specific sprite key
   private createAnimationsForSprite(spriteKey: string): void {
     try {
       // Check if sprite exists

@@ -48,7 +48,7 @@ const DEFAULT_OUTFITS: Record<string, OutfitData> = {
   },
   skeleton: {
     id: "skeleton",
-    name: "Skeleton Warrior",
+    name: "Skeleton",
     sprite: "skeleton", // Will need to be loaded in BootScene
     description: "A fearsome skeletal appearance that strikes fear into enemies.",
     isUnlocked: false,

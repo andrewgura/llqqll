@@ -1,4 +1,3 @@
-// src/config/setConfig.ts
 import { ItemSets } from "@/types";
 
 export interface SetSlot {
@@ -63,7 +62,7 @@ export const SET_CONFIGURATIONS: Record<ItemSets, SetConfiguration> = {
       skullCap: { bonus: "Mana", value: 20 },
       skeletalMedallion: { bonus: "Move Speed", value: 200 },
     },
-    unlockedOutfit: "skeleton-outfit",
+    unlockedOutfit: "skeleton", // FIXED: Changed from "skeleton-outfit" to "skeleton" to match outfit store
   },
 };
 
@@ -126,7 +125,34 @@ export class SetConfigUtils {
   }
 
   /**
-   * Check if an item can be placed in a specific slot
+   * FIXED: Enhanced method to find the specific weapon slot that matches the item's weapon type
+   */
+  static findMatchingWeaponSlot(
+    itemData: any,
+    setType: ItemSets,
+    targetSlotType: string
+  ): SetSlot | null {
+    const config = this.getSetConfig(setType);
+    if (!config) return null;
+
+    // Find the slot with matching slotType and weaponType
+    return (
+      config.slots.find((slot) => {
+        if (slot.slotType !== targetSlotType) return false;
+
+        // For weapon slots, also check the weaponType
+        if (targetSlotType === "weapon") {
+          const itemWeaponType = itemData?.weaponType;
+          return slot.weaponType === itemWeaponType;
+        }
+
+        return true;
+      }) || null
+    );
+  }
+
+  /**
+   * FIXED: Check if an item can be placed in a specific slot (now considers weapon types)
    */
   static canItemGoInSlot(
     itemId: string,
@@ -140,7 +166,42 @@ export class SetConfigUtils {
     }
 
     const requiredSlotType = this.getItemSlotType(itemId, setType, itemData);
-    return requiredSlotType === slotType;
+    if (requiredSlotType !== slotType) {
+      return false;
+    }
+
+    // For weapon slots, we need to check the specific weaponType
+    if (slotType === "weapon") {
+      const matchingSlot = this.findMatchingWeaponSlot(itemData, setType, slotType);
+      if (!matchingSlot) {
+        return false;
+      }
+
+      // Check if this specific slot matches the item's weapon type
+      return matchingSlot.weaponType === itemData?.weaponType;
+    }
+
+    return true;
+  }
+
+  /**
+   * FIXED: Get the specific slot data for an item to determine which weapon slot it belongs to
+   */
+  static getSpecificSlotForItem(itemId: string, setType: ItemSets, itemData: any): SetSlot | null {
+    const config = this.getSetConfig(setType);
+    if (!config || !this.isItemInSet(itemId, setType)) {
+      return null;
+    }
+
+    const slotType = this.getItemSlotType(itemId, setType, itemData);
+    if (!slotType) return null;
+
+    if (slotType === "weapon") {
+      return this.findMatchingWeaponSlot(itemData, setType, slotType);
+    }
+
+    // For non-weapon slots, find the first matching slot
+    return config.slots.find((slot) => slot.slotType === slotType) || null;
   }
 
   /**

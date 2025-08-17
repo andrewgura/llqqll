@@ -45,6 +45,14 @@ const SetSlotComponent: React.FC<SetSlotProps> = ({
 
   const slotClasses = `set-slot ${isEmpty ? "empty" : ""} ${isHighlighted ? "highlight-slot" : ""}`;
 
+  // FIXED: Create unique slot identifier for weapon slots
+  const getSlotIdentifier = () => {
+    if (slotInfo.slotType === "weapon" && slotInfo.weaponType) {
+      return `${slotInfo.slotType}_${slotInfo.weaponType}`;
+    }
+    return slotInfo.slotType;
+  };
+
   return (
     <div className="set-slot-container" style={{ gridArea: slotInfo.position }}>
       <div
@@ -53,9 +61,9 @@ const SetSlotComponent: React.FC<SetSlotProps> = ({
         data-slot-type={slotInfo.slotType}
         data-weapon-type={slotInfo.weaponType || ""}
         data-item-id={itemId}
-        onDragOver={(e) => onDragOver(e, slotInfo.slotType)}
+        onDragOver={(e) => onDragOver(e, getSlotIdentifier())}
         onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, slotInfo.slotType)}
+        onDrop={(e) => onDrop(e, getSlotIdentifier())}
         style={{
           backgroundImage: itemImageUrl ? `url(${itemImageUrl})` : "none",
           backgroundSize: "contain",
@@ -154,7 +162,7 @@ const SetCollection: React.FC = () => {
     setCurrentSetView(setType);
   };
 
-  // Handle drag over
+  // FIXED: Enhanced drag over validation
   const handleDragOver = (e: React.DragEvent, slotType: string) => {
     e.preventDefault();
 
@@ -171,13 +179,28 @@ const SetCollection: React.FC = () => {
     const itemData = ItemDictionary.getItem(itemInstance.templateId);
     if (!itemData) return;
 
-    // Check if the item is valid for this slot using the config
-    const isValidForSlot = SetConfigUtils.canItemGoInSlot(
-      itemInstance.templateId,
-      slotType,
-      currentSetView,
-      itemData
-    );
+    // FIXED: Enhanced validation that considers weapon types
+    let isValidForSlot = false;
+
+    // Parse the slot type to get base type and weapon type
+    const [baseSlotType, weaponType] = slotType.includes("_")
+      ? slotType.split("_")
+      : [slotType, null];
+
+    if (baseSlotType === "weapon" && weaponType) {
+      // For weapon slots, check if the item's weapon type matches the slot's weapon type
+      isValidForSlot =
+        SetConfigUtils.isItemInSet(itemInstance.templateId, currentSetView) &&
+        itemData.weaponType === weaponType;
+    } else {
+      // For non-weapon slots, use the existing validation
+      isValidForSlot = SetConfigUtils.canItemGoInSlot(
+        itemInstance.templateId,
+        baseSlotType,
+        currentSetView,
+        itemData
+      );
+    }
 
     // If valid, highlight the slot
     if (isValidForSlot) {
@@ -190,7 +213,7 @@ const SetCollection: React.FC = () => {
     setHighlightedSlot(null);
   };
 
-  // Handle drop
+  // FIXED: Enhanced drop validation
   const handleDrop = (e: React.DragEvent, slotType: string) => {
     e.preventDefault();
     setHighlightedSlot(null);
@@ -208,13 +231,41 @@ const SetCollection: React.FC = () => {
     const itemData = ItemDictionary.getItem(itemInstance.templateId);
     if (!itemData) return;
 
-    // Check if the item is valid for this slot using the config
-    const isValidForSlot = SetConfigUtils.canItemGoInSlot(
-      itemInstance.templateId,
-      slotType,
-      currentSetView,
-      itemData
-    );
+    // FIXED: Enhanced validation that considers weapon types
+    let isValidForSlot = false;
+    let errorMessage = "";
+
+    // Parse the slot type to get base type and weapon type
+    const [baseSlotType, weaponType] = slotType.includes("_")
+      ? slotType.split("_")
+      : [slotType, null];
+
+    if (baseSlotType === "weapon" && weaponType) {
+      // For weapon slots, check if the item's weapon type matches the slot's weapon type
+      isValidForSlot =
+        SetConfigUtils.isItemInSet(itemInstance.templateId, currentSetView) &&
+        itemData.weaponType === weaponType;
+
+      if (!isValidForSlot) {
+        if (!SetConfigUtils.isItemInSet(itemInstance.templateId, currentSetView)) {
+          errorMessage = `This item is not part of the ${SetConfigUtils.formatSetName(currentSetView)} set.`;
+        } else {
+          errorMessage = `This ${itemData.weaponType} weapon belongs in the ${itemData.weaponType} slot, not the ${weaponType} slot.`;
+        }
+      }
+    } else {
+      // For non-weapon slots, use the existing validation
+      isValidForSlot = SetConfigUtils.canItemGoInSlot(
+        itemInstance.templateId,
+        baseSlotType,
+        currentSetView,
+        itemData
+      );
+
+      if (!isValidForSlot) {
+        errorMessage = `This item cannot be placed in the ${baseSlotType} slot.`;
+      }
+    }
 
     if (isValidForSlot) {
       // Show confirmation dialog
@@ -224,7 +275,7 @@ const SetCollection: React.FC = () => {
         itemId: itemInstance.templateId,
       });
     } else {
-      emitEvent("ui.message.show", `This item cannot be placed in the ${slotType} slot.`);
+      emitEvent("ui.message.show", errorMessage);
     }
   };
 
@@ -323,6 +374,14 @@ const SetCollection: React.FC = () => {
     });
   };
 
+  // FIXED: Helper function to get slot key for collections
+  const getSlotKey = (slot: SetSlot): string => {
+    if (slot.slotType === "weapon" && slot.weaponType) {
+      return `${slot.slotType}_${slot.weaponType}`;
+    }
+    return slot.slotType;
+  };
+
   if (!visible) {
     return null;
   }
@@ -368,18 +427,21 @@ const SetCollection: React.FC = () => {
       <div className="set-content">
         <div className="set-slots-panel">
           <div className="set-slots-grid">
-            {currentConfig.slots.map((slot) => (
-              <SetSlotComponent
-                key={`${currentSetView}-${slot.slotType}-${slot.position}`}
-                setType={currentSetView}
-                slotInfo={slot}
-                itemId={currentCollectionItems[slot.slotType] || ""}
-                isHighlighted={highlightedSlot === slot.slotType}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-              />
-            ))}
+            {currentConfig.slots.map((slot) => {
+              const slotKey = getSlotKey(slot);
+              return (
+                <SetSlotComponent
+                  key={`${currentSetView}-${slot.slotType}-${slot.position}`}
+                  setType={currentSetView}
+                  slotInfo={slot}
+                  itemId={currentCollectionItems[slotKey] || ""}
+                  isHighlighted={highlightedSlot === slotKey}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -426,7 +488,7 @@ const SetCollection: React.FC = () => {
           </div>
           <div className="set-reward-image">
             <img
-              src={`assets/outfit-preview/${currentConfig.unlockedOutfit || "skeleton-outfit"}-preview.png`}
+              src={`assets/outfit-preview/${currentConfig.unlockedOutfit || "skeleton"}-outfit-preview.png`}
               alt={`${currentConfig.name} Outfit`}
             />
           </div>
