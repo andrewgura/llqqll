@@ -1,14 +1,9 @@
 import { eventBus } from "../utils/EventBus";
 import { useGameStore } from "../stores/gameStore";
-import {
-  updateSkillWithExperience,
-  SKILL_PROGRESSION,
-  calculatePointsForNextLevel,
-} from "../utils/SkillProgressionFormula";
+import { SKILL_PROGRESSION } from "../utils/SkillProgressionFormula";
 import { DamageEvent } from "../types";
 
 class SkillProgressionSystemService {
-  // Maps weapon types to skill IDs
   private readonly WEAPON_SKILL_MAP: Record<string, string> = {
     melee: "meleeWeapons",
     archery: "archery",
@@ -30,13 +25,18 @@ class SkillProgressionSystemService {
   handleDamageDealt(event?: DamageEvent): void {
     try {
       // Skip processing if no data or invalid data
-      if (!event) return;
+      if (!event) {
+        return;
+      }
 
       // Determine which skill to update based on weapon type
       const skillId = this.WEAPON_SKILL_MAP[event.weaponType];
-      if (!skillId) return;
 
-      // Award 1 skill point for each successful hit
+      if (!skillId) {
+        return;
+      }
+
+      // Award skill points for each successful hit
       const pointsToAward = this.calculatePointsToAward(event);
 
       // Award skill points to the appropriate weapon skill
@@ -50,7 +50,6 @@ class SkillProgressionSystemService {
    * Calculate points to award based on damage event
    */
   private calculatePointsToAward(event: DamageEvent): number {
-    // Basic calculation - can be enhanced with formulas based on damage amount, target type, etc.
     let basePoints = 1;
 
     // Extra points for ability usage vs auto attack
@@ -71,10 +70,10 @@ class SkillProgressionSystemService {
     try {
       const store = useGameStore.getState();
 
-      // Get the current skill data
+      // Get current skill or initialize if not found
       let currentSkill = store.playerCharacter.skills[skillId];
+
       if (!currentSkill) {
-        // Initialize if not found
         const basePoints =
           SKILL_PROGRESSION.BASE_POINTS[skillId as keyof typeof SKILL_PROGRESSION.BASE_POINTS] ||
           15;
@@ -85,86 +84,13 @@ class SkillProgressionSystemService {
         };
       }
 
-      // Calculate total accumulated experience so far
-      const totalExp = this.calculateTotalSkillExperience(skillId, currentSkill);
+      const oldExperience = currentSkill.experience;
+      const newExperience = oldExperience + points;
 
-      // Add the new points to get new total experience
-      const newTotalExp = totalExp + points;
-
-      // Calculate new level and experience distribution
-      const { level, currentExp, expForNextLevel } = this.calculateLevelAndExpFromTotal(
-        skillId,
-        newTotalExp
-      );
-
-      // Update skill in store
-      store.updateSkill(skillId, currentExp);
+      // Simply add the points - updateSkill handles the level calculations
+      store.updateSkill(skillId, newExperience);
     } catch (error) {
       console.error("Error in awardSkillPoints:", error);
-    }
-  }
-
-  /**
-   * Helper function to calculate total accumulated experience for a skill
-   */
-  private calculateTotalSkillExperience(skillId: string, skill: any): number {
-    try {
-      let totalExp = 0;
-
-      // Add experience needed for all previous levels
-      for (let level = 1; level < skill.level; level++) {
-        totalExp += calculatePointsForNextLevel(skillId, level);
-      }
-
-      // Add current progress toward next level
-      totalExp += skill.experience;
-
-      return totalExp;
-    } catch (error) {
-      console.error("Error in calculateTotalSkillExperience:", error);
-      return 0;
-    }
-  }
-
-  /**
-   * Helper function to calculate level and experience distribution from total experience
-   */
-  private calculateLevelAndExpFromTotal(
-    skillId: string,
-    totalExp: number
-  ): {
-    level: number;
-    currentExp: number;
-    expForNextLevel: number;
-  } {
-    try {
-      let level = 1;
-      let remainingExp = totalExp;
-
-      // Keep advancing level while we have enough experience
-      while (level < SKILL_PROGRESSION.MAX_LEVEL) {
-        const expNeeded = calculatePointsForNextLevel(skillId, level);
-
-        if (remainingExp < expNeeded) {
-          break;
-        }
-
-        remainingExp -= expNeeded;
-        level++;
-      }
-
-      // Calculate experience needed for next level
-      const expForNextLevel =
-        level < SKILL_PROGRESSION.MAX_LEVEL ? calculatePointsForNextLevel(skillId, level) : 0;
-
-      return {
-        level,
-        currentExp: remainingExp,
-        expForNextLevel,
-      };
-    } catch (error) {
-      console.error("Error in calculateLevelAndExpFromTotal:", error);
-      return { level: 1, currentExp: 0, expForNextLevel: 15 };
     }
   }
 

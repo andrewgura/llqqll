@@ -49,17 +49,9 @@ export class EnergyWaveAbility extends BaseStrategy {
       // Rotate pattern based on facing direction using the fixed rotation method
       const rotatedPattern = this.rotatePatternFixed(pattern, facing);
 
-      if (debug) {
-        console.log(`Energy Wave cast - Player facing: ${facing}`);
-      }
-
       // Calculate the player's tile position (center of the tile)
       const playerTileX = Math.floor(x / this.TILE_SIZE);
       const playerTileY = Math.floor(y / this.TILE_SIZE);
-
-      if (debug) {
-        console.log(`Player at tile: (${playerTileX}, ${playerTileY})`);
-      }
 
       // Convert the pattern to world positions
       const worldPositions = this.convertPatternToWorldPositions(
@@ -81,10 +73,6 @@ export class EnergyWaveAbility extends BaseStrategy {
       // Apply damage to monsters in affected tiles with a slight delay for visual effect
       scene.time.delayedCall(50, () => {
         const hitCount = this.applyDamageToMonstersInTiles(scene, worldPositions, damage, debug);
-
-        if (debug) {
-          console.log(`Energy Wave hit ${hitCount} monsters using tile pattern`);
-        }
       });
 
       // Store active animation objects

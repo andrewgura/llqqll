@@ -178,9 +178,6 @@ export const createQuestStore: StateCreator<
           // Show the reward summary message
           eventBus.emit("ui.message.show", rewardResult.message);
 
-          // Log reward details for debugging
-          console.log("Quest rewards distributed:", rewardResult);
-
           // Emit detailed reward events for UI updates
           if (rewardResult.goldReceived > 0) {
             eventBus.emit("player.gold.received", {
@@ -292,7 +289,5 @@ export const createQuestStore: StateCreator<
         get().updateQuestProgress(data.type);
       }
     });
-
-    console.log("Quest progress tracking initialized");
   },
 });

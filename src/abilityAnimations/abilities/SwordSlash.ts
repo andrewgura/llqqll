@@ -74,17 +74,9 @@ export class SwordSlashAbility extends BaseStrategy {
         console.warn(`No pattern found for facing direction: ${facing}, using default.`);
       }
 
-      if (debug) {
-        console.log(`Sword Slash cast - Player facing: ${facing}`);
-      }
-
       // Calculate the player's tile position
       const playerTileX = Math.floor(x / this.TILE_SIZE);
       const playerTileY = Math.floor(y / this.TILE_SIZE);
-
-      if (debug) {
-        console.log(`Player at tile: (${playerTileX}, ${playerTileY})`);
-      }
 
       // Convert the pattern to world positions
       const worldPositions = this.convertPatternToWorldPositions(pattern, playerTileX, playerTileY);
@@ -112,10 +104,6 @@ export class SwordSlashAbility extends BaseStrategy {
 
       // Apply damage to monsters in the affected tiles
       const hitCount = this.applyDamageToMonstersInTiles(scene, worldPositions, damage, debug);
-
-      if (debug) {
-        console.log(`Sword Slash hit ${hitCount} monsters`);
-      }
 
       // Store active animation objects
       activeAnimations.set(ability.id, gameObjects);

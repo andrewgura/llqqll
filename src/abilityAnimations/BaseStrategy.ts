@@ -60,12 +60,6 @@ export abstract class BaseStrategy implements AnimationStrategy {
       // Determine if this is magic damage
       const isMagicDamage = DamageFormulas.isMagicDamage(undefined, ability.skillId);
 
-      if (debug) {
-        console.log(
-          `Ability ${ability.id} dealing ${finalDamage} damage to monster (magic: ${isMagicDamage})`
-        );
-      }
-
       // Apply damage to monster
       monster.takeDamage(finalDamage, isMagicDamage);
 
@@ -181,12 +175,6 @@ export abstract class BaseStrategy implements AnimationStrategy {
           return posTileX === monsterTileX && posTileY === monsterTileY;
         });
 
-        if (debug) {
-          console.log(
-            `Monster at (${monster.x}, ${monster.y}) -> tile (${monsterTileX}, ${monsterTileY}): hit=${isInAffectedTile}`
-          );
-        }
-
         if (isInAffectedTile) {
           // Monster is in an affected tile - apply damage using new formula
           this.applyAbilityDamageToMonster(monster, ability, debug);
@@ -235,10 +223,6 @@ export abstract class BaseStrategy implements AnimationStrategy {
         const distance = Phaser.Math.Distance.Between(centerX, centerY, monster.x, monster.y);
 
         if (distance <= radius) {
-          if (debug) {
-            console.log(`Circle damage to monster at distance ${distance.toFixed(1)}`);
-          }
-
           // Apply damage using new formula
           this.applyAbilityDamageToMonster(monster, ability, debug);
           hitCount++;
@@ -309,11 +293,6 @@ export abstract class BaseStrategy implements AnimationStrategy {
         const distance = this.distanceToLine(monster.x, monster.y, startX, startY, endX, endY);
 
         if (distance <= width / 2 + 16) {
-          // Adding monster radius
-          if (debug) {
-            console.log(`Line damage to monster at distance ${distance.toFixed(1)} from line`);
-          }
-
           // Apply damage using new formula
           this.applyAbilityDamageToMonster(monster, ability, debug);
           hitCount++;

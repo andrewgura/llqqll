@@ -337,9 +337,6 @@ export class FireWallAbility extends BaseStrategy {
 
         // Check if monster is within wall width
         if (distToWall <= wallWidth / 2 + 20) {
-          // Adding 20px tolerance for better hit detection
-          console.log(`Fire Wall hit monster at distance ${distToWall.toFixed(1)} from wall`);
-
           // Apply damage
           if (monster.takeDamage) {
             monster.takeDamage(damage);

@@ -62,10 +62,6 @@ export class BashAbility extends BaseStrategy {
         console.warn(`No pattern found for facing direction: ${facing}, using default.`);
       }
 
-      if (debug) {
-        console.log(`Bash cast - Player facing: ${facing}`);
-      }
-
       // Calculate the player's tile position
       const playerTileX = Math.floor(x / this.TILE_SIZE);
       const playerTileY = Math.floor(y / this.TILE_SIZE);
@@ -96,10 +92,6 @@ export class BashAbility extends BaseStrategy {
 
       // Apply damage to monsters in the affected tiles
       const hitCount = this.applyDamageToMonstersInTiles(scene, worldPositions, damage, debug);
-
-      if (debug) {
-        console.log(`Bash hit ${hitCount} monsters using tile pattern`);
-      }
 
       // Store active animation objects
       activeAnimations.set(ability.id, gameObjects);

@@ -142,7 +142,6 @@ export class ProjectileStrategy extends BaseStrategy implements AnimationStrateg
 
             // Apply damage to the monster
             if ((monster as Monster).takeDamage) {
-              console.log(`Projectile hit monster, applying ${damage} damage`);
               (monster as Monster).takeDamage(damage);
               this.showDamageEffect(scene, monster, damage);
             }

@@ -428,10 +428,6 @@ export class ExpandingStrategy implements AnimationStrategy {
 
         // Only hit if both conditions are true
         if (isInRadius && isInArc) {
-          console.log(
-            `Energy Wave hit monster at distance ${distance.toFixed(1)}, angle ${((angleDiff * 180) / Math.PI).toFixed(1)}°`
-          );
-
           // Draw debug line to show hit
           const debugLine = scene.add.graphics();
           debugLine.lineStyle(2, 0x00ff00, 0.7);

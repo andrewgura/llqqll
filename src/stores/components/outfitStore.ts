@@ -138,7 +138,6 @@ export const createOutfitStore: StateCreator<GameState & OutfitStore, [], [], Ou
     }
 
     if (state.outfitState.unlockedOutfitIds.includes(outfitId)) {
-      console.log(`Outfit ${outfitId} is already unlocked`);
       return;
     }
 

@@ -299,11 +299,9 @@ export class PortalSystem {
 
       if (targetMap === currentMap) {
         // Same map teleportation - just move the player without full map reload
-        console.log(`Same-map teleportation from ${currentMap} to ${targetMap}`);
         this.handleSameMapTeleport(gameScene, phaserCoords.x, phaserCoords.y, message);
       } else {
         // Different map - use full map change process
-        console.log(`Cross-map teleportation from ${currentMap} to ${targetMap}`);
         gameScene.changeMap(targetMap, phaserCoords.x, phaserCoords.y, message);
       }
 
@@ -326,8 +324,6 @@ export class PortalSystem {
     message: string
   ): void {
     try {
-      console.log(`Same-map teleport to coordinates: ${destX}, ${destY}`);
-
       // Simple camera fade for visual feedback
       gameScene.cameras.main.fadeOut(150, 0, 0, 0);
 
@@ -351,8 +347,6 @@ export class PortalSystem {
 
           // Fade back in
           gameScene.cameras.main.fadeIn(150, 0, 0, 0);
-
-          console.log("Same-map teleportation completed successfully");
         } catch (error) {
           console.error("Error during same-map teleportation:", error);
           eventBus.emit("ui.error.show", "Error during teleportation");

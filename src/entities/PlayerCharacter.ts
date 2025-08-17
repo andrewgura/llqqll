@@ -102,8 +102,6 @@ export class PlayerCharacter extends Character {
   // ADD: Handle outfit change events from the Outfits UI
   private handleOutfitChanged(data: { outfitId: string; sprite: string; tint: number }): void {
     try {
-      console.log("PlayerCharacter: Outfit changed", data);
-
       // Update sprite if changed
       if (data.sprite !== this.currentOutfitSprite) {
         this.currentOutfitSprite = data.sprite;
@@ -111,7 +109,6 @@ export class PlayerCharacter extends Character {
         // Check if the new sprite texture exists
         if (this.scene.textures.exists(data.sprite)) {
           this.setTexture(data.sprite);
-          console.log(`PlayerCharacter: Changed sprite to ${data.sprite}`);
         } else {
           console.warn(`PlayerCharacter: Sprite ${data.sprite} not found, keeping current sprite`);
           // Fallback to default sprite
@@ -123,7 +120,6 @@ export class PlayerCharacter extends Character {
       if (data.tint !== this.currentTint) {
         this.currentTint = data.tint;
         this.setTint(data.tint);
-        console.log(`PlayerCharacter: Changed tint to 0x${data.tint.toString(16)}`);
       }
 
       // Re-create animations for new sprite if needed
@@ -240,8 +236,6 @@ export class PlayerCharacter extends Character {
         frameRate: 10,
         repeat: -1,
       });
-
-      console.log(`Created animations for outfit sprite: ${spriteKey}`);
     } catch (error) {
       console.error(`Error creating animations for sprite ${spriteKey}:`, error);
     }

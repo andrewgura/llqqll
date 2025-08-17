@@ -35,8 +35,6 @@ class PhaserSceneManagerService {
       const activeScenes = game.scene.getScenes(true);
       if (activeScenes && activeScenes.length > 0) {
         this.currentScene = activeScenes[0];
-      } else {
-        console.log("PhaserSceneManager initialized but no active scene found");
       }
 
       // Listen for scene transitions

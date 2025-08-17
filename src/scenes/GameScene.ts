@@ -18,6 +18,7 @@ import { Chest } from "@/entities/Chest";
 import { ChestLootTables } from "@/data/chest-loot-tables";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
 import { experienceSystem } from "@/services/ExperienceSystem";
+import { skillProgressionSystem } from "@/services/SkillProgressionSystem";
 
 // Chest state interface
 interface ChestState {
@@ -247,6 +248,7 @@ export class GameScene extends Phaser.Scene {
       store.registerSystem("itemHoverSystem", this.itemHoverSystem);
       store.registerSystem("gameScene", this);
       store.registerSystem("autoAttackSystem", autoAttackSystem);
+      store.registerSystem("skillProgressionSystem", skillProgressionSystem);
       store.registerSystem("monsterSpawnSystem", this.monsterSpawnSystem);
       store.registerSystem("experienceSystem", experienceSystem);
 
@@ -571,8 +573,6 @@ export class GameScene extends Phaser.Scene {
     const chest = this.canOpenChestAtTile(tileX, tileY);
     if (chest) {
       this.openChest(chest);
-    } else {
-      console.log("No chest found at this tile");
     }
   }
 
@@ -809,7 +809,6 @@ export class GameScene extends Phaser.Scene {
       // Get the npc-layer object layer
       const npcLayer = this.map.getObjectLayer("npc-layer");
       if (!npcLayer) {
-        console.log("No npc-layer found in current map");
         return;
       }
 
@@ -952,8 +951,6 @@ export class GameScene extends Phaser.Scene {
       if (this.isChangingMap) return;
       this.isChangingMap = true;
 
-      console.log(`Same-map teleportation to: ${destX}, ${destY}`);
-
       // Quick fade for visual feedback
       this.cameras.main.fadeOut(150, 0, 0, 0);
 
@@ -983,7 +980,6 @@ export class GameScene extends Phaser.Scene {
           // Reset the flag when fade-in is complete
           this.cameras.main.once("camerafadeincomplete", () => {
             this.isChangingMap = false;
-            console.log("Same-map teleportation completed successfully");
           });
         } catch (error) {
           console.error("Error during same-map teleportation:", error);
@@ -1009,7 +1005,6 @@ export class GameScene extends Phaser.Scene {
 
       // NEW: Check if we're trying to "change" to the same map
       if (mapKey === currentMap) {
-        console.log("Same map detected - using teleportPlayerInSameMap instead");
         this.teleportPlayerInSameMap(destX, destY, message);
         return;
       }

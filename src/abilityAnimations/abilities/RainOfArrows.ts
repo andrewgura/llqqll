@@ -44,10 +44,6 @@ export class RainOfArrowsAbility extends BaseStrategy {
         targetY = mouseWorldPosition.y;
       }
 
-      if (debug) {
-        console.log(`Rain of Arrows cast at target position: (${targetX}, ${targetY})`);
-      }
-
       // Check range
       const maxRange = ability.range || 256; // Maximum cast range
       const distanceToTarget = Phaser.Math.Distance.Between(
@@ -98,10 +94,6 @@ export class RainOfArrowsAbility extends BaseStrategy {
           damage,
           debug
         );
-
-        if (debug) {
-          console.log(`Rain of Arrows initial hit: ${initialHitCount} monsters`);
-        }
       });
 
       // Set up recurring damage timer
@@ -109,10 +101,6 @@ export class RainOfArrowsAbility extends BaseStrategy {
         delay: damageInterval,
         callback: () => {
           const hitCount = this.applyDamageToMonstersInTiles(scene, tilePositions, damage, debug);
-
-          if (debug && hitCount > 0) {
-            console.log(`Rain of Arrows periodic damage: ${hitCount} monsters`);
-          }
         },
         callbackScope: this,
         loop: true,
@@ -128,10 +116,6 @@ export class RainOfArrowsAbility extends BaseStrategy {
           if (obj.active) obj.destroy();
         });
         activeAnimations.delete(ability.id);
-
-        if (debug) {
-          console.log("Rain of Arrows effect ended");
-        }
       });
 
       // Return a promise that resolves when the ability is successfully cast

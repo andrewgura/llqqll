@@ -24,12 +24,6 @@ export class FocusAbility extends BaseStrategy {
       const buffMultiplier = config.buffMultiplier || 1.5; // 50% attack speed increase
       const debug = config.debug || false;
 
-      if (debug) {
-        console.log(
-          `Focus ability activated - Duration: ${effectDuration}ms, Multiplier: ${buffMultiplier}x`
-        );
-      }
-
       // Create visual effects
       this.createBuffEffects(scene, playerCharacter, effectDuration, config, gameObjects);
 
@@ -59,10 +53,6 @@ export class FocusAbility extends BaseStrategy {
 
           // Show end message
           eventBus.emit("ui.message.show", "Focus effect ended.");
-
-          if (debug) {
-            console.log("Focus buff removed");
-          }
         }
       );
 

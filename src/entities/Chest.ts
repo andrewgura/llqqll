@@ -55,8 +55,6 @@ export class Chest extends Entity {
 
       // Handle chest opening directly when clicked
       this.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        console.log(`Chest ${this.id} clicked directly`);
-
         // Check if this is a left click
         if (pointer.button !== 0) return;
 
@@ -65,7 +63,6 @@ export class Chest extends Entity {
 
         // Check if the player exists and is close enough
         if (!gameScene.playerCharacter) {
-          console.log("No player character found");
           return;
         }
 
@@ -88,7 +85,6 @@ export class Chest extends Entity {
 
         // Try to open the chest using GameScene's method
         if (gameScene.openChest && typeof gameScene.openChest === "function") {
-          console.log("Calling gameScene.openChest...");
           const success = gameScene.openChest(this);
         } else {
           console.error("gameScene.openChest method not found");

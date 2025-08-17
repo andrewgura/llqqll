@@ -33,9 +33,9 @@ export class DamageFormulas {
     const skillValue = this.getSkillValueForWeaponType(skills, weaponType);
     const playerLevel = skills.playerLevel?.level || 1;
 
-    const powerComponent = totalPower * 0.75;
-    const skillComponent = skillValue * 0.15;
-    const levelComponent = playerLevel * 0.1;
+    const powerComponent = totalPower * 0.75; // Unchanged - primary factor
+    const skillComponent = skillValue * 0.2; // Increased from 0.15
+    const levelComponent = playerLevel * 0.05; // Reduced from 0.10
 
     const totalDamage = powerComponent + skillComponent + levelComponent;
     return Math.max(1, Math.round(totalDamage));
@@ -61,9 +61,9 @@ export class DamageFormulas {
     const skillValue = this.getSkillValueForWeaponType(skills, weaponType);
     const playerLevel = skills.playerLevel?.level || 1;
 
-    const powerComponent = totalPower * 0.75;
-    const skillComponent = skillValue * 0.15;
-    const levelComponent = playerLevel * 0.1;
+    const powerComponent = totalPower * 0.75; // Unchanged - primary factor
+    const skillComponent = skillValue * 0.2; // Increased from 0.15
+    const levelComponent = playerLevel * 0.05; // Reduced from 0.10
 
     const bonusDamage = powerComponent + skillComponent + levelComponent;
     const totalDamage = baseDamage + bonusDamage;

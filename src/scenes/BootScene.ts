@@ -398,8 +398,6 @@ export class BootScene extends Phaser.Scene {
         frameRate: 10,
         repeat: -1,
       });
-
-      console.log(`Created animations for sprite: ${spriteKey}`);
     } catch (error) {
       console.error(`Error creating animations for sprite ${spriteKey}:`, error);
       this.loadErrors.push(error as Error);

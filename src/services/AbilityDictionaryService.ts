@@ -264,10 +264,6 @@ class AbilityDictionaryService implements IAbilityDictionary {
       eventBus.emit("abilityDictionary.initialized", {
         count: Object.keys(this.abilityDatabase).length,
       });
-
-      console.log(
-        `AbilityDictionary initialized with ${Object.keys(this.abilityDatabase).length} abilities`
-      );
     } catch (error) {
       console.error("Error initializing abilities:", error);
     }

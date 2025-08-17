@@ -39,10 +39,6 @@ export class WhirlwindAbility extends BaseStrategy {
         pattern = config.pattern;
       }
 
-      if (debug) {
-        console.log(`Whirlwind cast at (${x}, ${y})`);
-      }
-
       // Calculate the player's tile position
       const playerTileX = Math.floor(x / this.TILE_SIZE);
       const playerTileY = Math.floor(y / this.TILE_SIZE);
@@ -64,10 +60,6 @@ export class WhirlwindAbility extends BaseStrategy {
 
       // Apply damage to monsters in the affected tiles
       const hitCount = this.applyDamageToMonstersInTiles(scene, worldPositions, damage, debug);
-
-      if (debug) {
-        console.log(`Whirlwind hit ${hitCount} monsters using tile pattern`);
-      }
 
       // Store active animation objects
       activeAnimations.set(ability.id, gameObjects);
