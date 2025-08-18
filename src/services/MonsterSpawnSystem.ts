@@ -238,8 +238,6 @@ export class MonsterSpawnSystem {
         targetSpawnPoint = this.spawnPoints.get(data.spawnPointId) || null;
       }
 
-      console.log(data);
-
       useGameStore.getState().recordCreatureKill(data.id);
 
       // Fallback: search through all spawn points for this monster

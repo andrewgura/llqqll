@@ -194,6 +194,7 @@ export interface MonsterData {
   sprite: string;
   health: number;
   maxHealth: number;
+  preview: string;
   speed: number;
   experience: number; // Experience awarded when defeated
   damage?: number; // Base damage

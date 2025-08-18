@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { MonsterDictionary } from "../../services/MonsterDictionaryService";
+import { ItemDictionary } from "../../services/ItemDictionaryService";
 import { MonsterData } from "@/types";
 import { useGameStore } from "@/stores/gameStore";
 
@@ -16,33 +17,57 @@ const CreatureNavigationItem: React.FC<{
   isSelected: boolean;
   onClick: () => void;
 }> = ({ creature, killCount, isSelected, onClick }) => {
+  console.log(creature);
   return (
     <div className={`creature-nav-item ${isSelected ? "selected" : ""}`} onClick={onClick}>
       <div className="creature-nav-image">
-        <img
-          src={`assets/outfit-preview/${creature.id}-preview.png`}
-          alt={creature.name}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "assets/outfit-preview/placeholder.png";
-          }}
-        />
+        <img src={creature.preview} alt={creature.name} />
       </div>
       <div className="creature-nav-info">
         <div className="creature-nav-name">{creature.name}</div>
-        <div className="creature-nav-category">{creature.category}</div>
+        <div className="creature-nav-category">
+          {creature.category} • {killCount} kills
+        </div>
       </div>
     </div>
   );
 };
 
 const LootTable: React.FC<{ creature: MonsterData }> = ({ creature }) => {
+  const drops = creature.drops || [];
+
+  if (drops.length === 0) {
+    return (
+      <div className="creature-loot-section">
+        <h4>Loot Table</h4>
+        <p>No known drops</p>
+      </div>
+    );
+  }
+
+  // Group drops into rows of 4
   const lootRows = useMemo(() => {
     const rows = [];
-    for (let i = 0; i < creature.drops.length; i += 4) {
-      rows.push(creature.drops.slice(i, i + 4));
+    for (let i = 0; i < drops.length; i += 4) {
+      rows.push(drops.slice(i, i + 4));
     }
     return rows;
-  }, [creature.drops]);
+  }, [drops]);
+
+  // Helper function to get item image path
+  const getItemImagePath = (itemId: string): string => {
+    const item = ItemDictionary.getItem(itemId);
+    if (!item?.texture) return "assets/items/placeholder.png";
+
+    const folder = ItemDictionary.getItemFolder(item);
+    return `assets/equipment/${folder}/${item.texture}.png`;
+  };
+
+  // Helper function to get item name
+  const getItemName = (itemId: string): string => {
+    const item = ItemDictionary.getItem(itemId);
+    return item?.name || itemId;
+  };
 
   return (
     <div className="creature-loot-section">
@@ -54,16 +79,23 @@ const LootTable: React.FC<{ creature: MonsterData }> = ({ creature }) => {
               <div key={itemIndex} className="loot-item">
                 <div className="loot-item-image">
                   <img
-                    src={`assets/items/${drop.itemId}.png`}
-                    alt={drop.itemId}
+                    src={getItemImagePath(drop.itemId)}
+                    alt={getItemName(drop.itemId)}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "assets/items/placeholder.png";
                     }}
                   />
                 </div>
                 <div className="loot-item-info">
-                  <span className="loot-name">{drop.itemId}</span>
+                  <span className="loot-name">{getItemName(drop.itemId)}</span>
                   <span className="loot-chance">{Math.round(drop.chance * 100)}%</span>
+                  {drop.minQuantity && drop.maxQuantity && (
+                    <span className="loot-quantity">
+                      {drop.minQuantity === drop.maxQuantity
+                        ? drop.minQuantity
+                        : `${drop.minQuantity}-${drop.maxQuantity}`}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -78,17 +110,9 @@ const ProgressBar: React.FC<{ creature: MonsterData; killCount: number }> = ({
   creature,
   killCount,
 }) => {
-  const milestones: ProgressMilestone[] = useMemo(() => {
-    return [
-      { kills: 250, reward: "1% Bonus Damage", achieved: killCount >= 250 },
-      { kills: 500, reward: "1% Damage Reduction", achieved: killCount >= 500 },
-      { kills: 1000, reward: "2% Bonus Damage & Reduction", achieved: killCount >= 1000 },
-      { kills: 1250, reward: "1% Better Loot Chance", achieved: killCount >= 1250 },
-    ];
-  }, [killCount]);
-
-  const maxKills = 1250;
-  const progressPercentage = Math.min(100, (killCount / maxKills) * 100);
+  const milestones = MonsterDictionary.getKillProgressForCreature(creature.id, killCount);
+  const maxKills = milestones[milestones.length - 1]?.killCount || 1250;
+  const progressPercentage = Math.min((killCount / maxKills) * 100, 100);
 
   return (
     <div className="creature-progress-section">
@@ -103,18 +127,20 @@ const ProgressBar: React.FC<{ creature: MonsterData; killCount: number }> = ({
             }}
           />
           {milestones.map((milestone, index) => {
-            const position = (milestone.kills / maxKills) * 100;
+            const position = (milestone.killCount / maxKills) * 100;
             const isLastMilestone = index === milestones.length - 1;
             const finalPosition = isLastMilestone ? 98 : position;
 
             return (
               <div
                 key={index}
-                className={`progress-milestone ${milestone.achieved ? "achieved" : ""} ${isLastMilestone ? "final-milestone" : ""}`}
+                className={`progress-milestone ${milestone.completed ? "achieved" : ""} ${
+                  isLastMilestone ? "final-milestone" : ""
+                }`}
                 style={{ left: `${finalPosition}%` }}
-                title={`${milestone.kills} kills: ${milestone.reward}`}
+                title={`${milestone.killCount} kills: ${milestone.reward}`}
               >
-                {milestone.achieved ? "✓" : "○"}
+                {milestone.completed ? "✓" : "○"}
               </div>
             );
           })}
@@ -125,9 +151,9 @@ const ProgressBar: React.FC<{ creature: MonsterData; killCount: number }> = ({
       </div>
       <div className="milestones-list">
         {milestones.map((milestone, index) => (
-          <div key={index} className={`milestone-item ${milestone.achieved ? "achieved" : ""}`}>
-            <span className="milestone-icon">{milestone.achieved ? "✓" : "○"}</span>
-            <span className="milestone-kills">{milestone.kills}</span>
+          <div key={index} className={`milestone-item ${milestone.completed ? "achieved" : ""}`}>
+            <span className="milestone-icon">{milestone.completed ? "✓" : "○"}</span>
+            <span className="milestone-kills">{milestone.killCount}</span>
             <span className="milestone-reward">{milestone.reward}</span>
           </div>
         ))}
@@ -144,13 +170,7 @@ const CreatureDetails: React.FC<{ creature: MonsterData; killCount: number }> = 
     <div className="creature-details">
       <div className="creature-header">
         <div className="creature-image-large">
-          <img
-            src={`assets/outfit-preview/${creature.id}-preview.png`}
-            alt={creature.name}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "assets/outfit-preview/placeholder.png";
-            }}
-          />
+          <img src={creature.preview} alt={creature.name} />
         </div>
         <div className="creature-basic-info">
           <h2 className="creature-name">{creature.name}</h2>
@@ -159,6 +179,18 @@ const CreatureDetails: React.FC<{ creature: MonsterData; killCount: number }> = 
             <div className="stat-row">
               <span className="stat-label">Health:</span>
               <span className="stat-value">{creature.health}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Damage:</span>
+              <span className="stat-value">{creature.damage}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Armor:</span>
+              <span className="stat-value">{creature.armor}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">Speed:</span>
+              <span className="stat-value">{creature.speed}</span>
             </div>
             <div className="stat-row">
               <span className="stat-label">Experience:</span>
@@ -183,16 +215,21 @@ const Creatures: React.FC = () => {
   const [selectedCreature, setSelectedCreature] = useState<string>("");
   const emitEvent = useEmitEvent();
 
-  const { getCreatureKillCount, getKilledCreaturesList } = useGameStore();
+  // FIX: Subscribe to the actual store state, not just the function
+  const killedCreatures = useGameStore((state) => state.killedCreatures);
+  const { getCreatureKillCount } = useGameStore();
 
   // Get creatures that have been killed at least once
   const availableCreatures = useMemo(() => {
-    const killedCreatures = getKilledCreaturesList();
-    return killedCreatures
+    // Use the state directly instead of calling getKilledCreaturesList()
+    const killedCreaturesList = Object.values(killedCreatures).filter(
+      (creature) => creature.timesKilled > 0
+    );
+    return killedCreaturesList
       .map((killedCreature) => MonsterDictionary.getMonster(killedCreature.monsterId))
       .filter((monster): monster is MonsterData => monster !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [getKilledCreaturesList]);
+  }, [killedCreatures]); // Now depends on actual state changes
 
   // Set first available creature as selected when creatures list changes
   useEffect(() => {
