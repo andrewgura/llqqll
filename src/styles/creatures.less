@@ -179,11 +179,12 @@
   min-height: 100%;
 }
 
+/* Updated Creature Header - More compact layout */
 .creature-header {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  padding: 15px;
+  gap: 15px;
+  padding: 12px;
   background-color: @transparent-bg-dark;
   border: 1px solid @border-primary;
   border-radius: 6px;
@@ -191,8 +192,8 @@
 }
 
 .creature-image-large {
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,80 +201,102 @@
   border: 2px solid @border-primary;
   border-radius: 6px;
   .innerBoxShadow();
+  flex-shrink: 0;
 
   img {
-    max-width: 80px;
-    max-height: 80px;
+    max-width: 64px;
+    max-height: 64px;
     object-fit: contain;
   }
 }
 
 .creature-basic-info {
   flex: 1;
+  min-width: 0;
 }
 
 .creature-name {
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   color: @text-highlight;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
   .textShadow();
 }
 
 .creature-category {
-  font-size: 14px;
+  font-size: 12px;
   color: @text-secondary;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 500;
 }
 
+/* Compact stats in columns */
 .creature-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  max-width: 200px;
 }
 
-/* Loot Section */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.stat-label {
+  color: @text-secondary;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: @text-primary;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+/* Optimized Loot Table - 4 items per row with less spacing */
 .creature-loot-section {
-  padding: 15px;
+  padding: 12px;
   background-color: @transparent-bg-dark;
   border: 1px solid @border-primary;
   border-radius: 6px;
   .innerBoxShadow();
 
   h4 {
-    margin: 0 0 12px 0;
+    margin: 0 0 10px 0;
     color: @text-highlight;
-    font-size: 18px;
+    font-size: 16px;
     .textShadow();
     border-bottom: 1px solid @border-primary;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
   }
 }
 
 .loot-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .loot-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-  max-width: 100%;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 
 .loot-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px;
   background-color: rgba(26, 31, 46, 0.5);
   border: 1px solid @border-primary;
-  border-radius: 4px;
+  border-radius: 3px;
   .transition();
+  height: 40px; /* Fixed height for consistency */
 
   &:hover {
     background-color: rgba(37, 44, 61, 0.7);
@@ -282,20 +305,21 @@
 }
 
 .loot-item-image {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   margin-right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: @bg-secondary;
   border: 1px solid @border-primary;
-  border-radius: 3px;
+  border-radius: 2px;
   .innerBoxShadow();
+  flex-shrink: 0;
 
   img {
-    max-width: 24px;
-    max-height: 24px;
+    max-width: 22px;
+    max-height: 22px;
     object-fit: contain;
   }
 }
@@ -304,14 +328,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 2px;
+  min-width: 0;
 }
 
 .loot-name {
-  font-size: 13px;
+  font-size: 12px;
   color: @text-primary;
-  font-weight: 500;
-  line-height: 1.2;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loot-chance {
@@ -319,6 +348,12 @@
   color: @gold-color;
   font-weight: bold;
   .textShadow();
+}
+
+.loot-quantity {
+  font-size: 10px;
+  color: @text-secondary;
+  font-weight: 500;
 }
 
 /* Progress Section */
@@ -468,23 +503,39 @@
   }
 
   .creature-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    padding: 10px;
+    gap: 12px;
   }
 
   .creature-image-large {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
 
     img {
-      max-width: 64px;
-      max-height: 64px;
+      max-width: 48px;
+      max-height: 48px;
     }
   }
 
+  .creature-stats {
+    grid-template-columns: 1fr;
+    max-width: 150px;
+  }
+
   .loot-row {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .loot-item {
+    padding: 4px 6px;
+    min-height: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .loot-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -494,11 +545,11 @@
   }
 
   .creature-header {
-    padding: 15px;
+    padding: 10px;
   }
 
   .creature-progress-section,
   .creature-loot-section {
-    padding: 15px;
+    padding: 12px;
   }
 }
