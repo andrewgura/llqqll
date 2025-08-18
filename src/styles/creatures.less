@@ -147,26 +147,43 @@
   letter-spacing: 0.5px;
 }
 
+/* No creatures message */
+.no-creatures-message {
+  padding: 30px 20px;
+  text-align: center;
+  color: @text-secondary;
+  font-style: italic;
+
+  p {
+    margin: 8px 0;
+
+    &:first-child {
+      color: @text-primary;
+      font-weight: bold;
+    }
+  }
+}
+
 /* Main Content Panel */
 .creatures-main {
   flex: 1;
   overflow-y: auto;
-  padding: 15px; /* Reduced padding */
+  padding: 15px;
   .scrollbarStyle();
 }
 
 .creature-details {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* Reduced gap */
-  min-height: 100%; /* Ensure full height usage */
+  gap: 15px;
+  min-height: 100%;
 }
 
 .creature-header {
   display: flex;
   align-items: flex-start;
   gap: 20px;
-  padding: 15px; /* Reduced padding */
+  padding: 15px;
   background-color: @transparent-bg-dark;
   border: 1px solid @border-primary;
   border-radius: 6px;
@@ -220,19 +237,19 @@
 
 /* Loot Section */
 .creature-loot-section {
-  padding: 15px; /* Reduced padding */
+  padding: 15px;
   background-color: @transparent-bg-dark;
   border: 1px solid @border-primary;
   border-radius: 6px;
   .innerBoxShadow();
 
   h4 {
-    margin: 0 0 12px 0; /* Reduced margin */
+    margin: 0 0 12px 0;
     color: @text-highlight;
     font-size: 18px;
     .textShadow();
     border-bottom: 1px solid @border-primary;
-    padding-bottom: 6px; /* Reduced padding */
+    padding-bottom: 6px;
   }
 }
 
@@ -242,9 +259,15 @@
   gap: 8px;
 }
 
+.loot-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  max-width: 100%;
+}
+
 .loot-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
   background-color: rgba(26, 31, 46, 0.5);
@@ -258,14 +281,41 @@
   }
 }
 
+.loot-item-image {
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: @bg-secondary;
+  border: 1px solid @border-primary;
+  border-radius: 3px;
+  .innerBoxShadow();
+
+  img {
+    max-width: 24px;
+    max-height: 24px;
+    object-fit: contain;
+  }
+}
+
+.loot-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .loot-name {
-  font-size: 14px;
+  font-size: 13px;
   color: @text-primary;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .loot-chance {
-  font-size: 12px;
+  font-size: 11px;
   color: @gold-color;
   font-weight: bold;
   .textShadow();
@@ -273,19 +323,19 @@
 
 /* Progress Section */
 .creature-progress-section {
-  padding: 15px; /* Reduced padding */
+  padding: 15px;
   background-color: @transparent-bg-dark;
   border: 1px solid @border-primary;
   border-radius: 6px;
   .innerBoxShadow();
 
   h4 {
-    margin: 0 0 12px 0; /* Reduced margin */
+    margin: 0 0 12px 0;
     color: @text-highlight;
     font-size: 18px;
     .textShadow();
     border-bottom: 1px solid @border-primary;
-    padding-bottom: 6px; /* Reduced padding */
+    padding-bottom: 6px;
   }
 }
 
@@ -346,8 +396,8 @@
 .milestones-list {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Reduced gap */
-  margin-bottom: 15px; /* Added bottom margin for spacing */
+  gap: 6px;
+  margin-bottom: 15px;
 }
 
 .milestone-item {
@@ -395,6 +445,17 @@
   flex: 1;
 }
 
+/* No creature selected message */
+.no-creature-selected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: @text-secondary;
+  font-style: italic;
+  font-size: 16px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .creatures-container {
@@ -420,6 +481,10 @@
       max-width: 64px;
       max-height: 64px;
     }
+  }
+
+  .loot-row {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 }
 

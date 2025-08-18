@@ -1,34 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-
-// Mock data for demonstration
-const MOCK_CREATURE_DATA = {
-  "decayed-skeleton": {
-    id: "decayed-skeleton",
-    name: "Decayed Skeleton",
-    category: "Undead",
-    sprite: "assets/outfit-preview/skeleton-outfit-preview.png",
-    health: 12,
-    experience: 40,
-    killCount: 500,
-    loot: [
-      { itemName: "Iron Sword", chance: "75%" },
-      { itemName: "Bone Fragment", chance: "45%" },
-      { itemName: "Rusty Coin", chance: "25%" },
-    ],
-  },
-};
-
-interface CreatureData {
-  id: string;
-  name: string;
-  category: string;
-  sprite: string;
-  health: number;
-  experience: number;
-  killCount: number;
-  loot: Array<{ itemName: string; chance: string }>;
-}
+import { MonsterDictionary } from "../../services/MonsterDictionaryService";
+import { MonsterData } from "@/types";
+import { useGameStore } from "@/stores/gameStore";
 
 interface ProgressMilestone {
   kills: number;
@@ -37,14 +11,21 @@ interface ProgressMilestone {
 }
 
 const CreatureNavigationItem: React.FC<{
-  creature: CreatureData;
+  creature: MonsterData;
+  killCount: number;
   isSelected: boolean;
   onClick: () => void;
-}> = ({ creature, isSelected, onClick }) => {
+}> = ({ creature, killCount, isSelected, onClick }) => {
   return (
     <div className={`creature-nav-item ${isSelected ? "selected" : ""}`} onClick={onClick}>
       <div className="creature-nav-image">
-        <img src={creature.sprite} alt={creature.name} />
+        <img
+          src={`assets/outfit-preview/${creature.id}-preview.png`}
+          alt={creature.name}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "assets/outfit-preview/placeholder.png";
+          }}
+        />
       </div>
       <div className="creature-nav-info">
         <div className="creature-nav-name">{creature.name}</div>
@@ -54,13 +35,57 @@ const CreatureNavigationItem: React.FC<{
   );
 };
 
-const ProgressBar: React.FC<{ killCount: number }> = ({ killCount }) => {
-  const milestones: ProgressMilestone[] = [
-    { kills: 250, reward: "1% Bonus Damage", achieved: killCount >= 250 },
-    { kills: 500, reward: "1% Damage Reduction", achieved: killCount >= 500 },
-    { kills: 1000, reward: "2% Bonus Damage & Reduction", achieved: killCount >= 1000 },
-    { kills: 1250, reward: "1% Better Loot Chance", achieved: killCount >= 1250 },
-  ];
+const LootTable: React.FC<{ creature: MonsterData }> = ({ creature }) => {
+  const lootRows = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < creature.drops.length; i += 4) {
+      rows.push(creature.drops.slice(i, i + 4));
+    }
+    return rows;
+  }, [creature.drops]);
+
+  return (
+    <div className="creature-loot-section">
+      <h4>Loot Table</h4>
+      <div className="loot-items">
+        {lootRows.map((row, rowIndex) => (
+          <div key={rowIndex} className="loot-row">
+            {row.map((drop, itemIndex) => (
+              <div key={itemIndex} className="loot-item">
+                <div className="loot-item-image">
+                  <img
+                    src={`assets/items/${drop.itemId}.png`}
+                    alt={drop.itemId}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "assets/items/placeholder.png";
+                    }}
+                  />
+                </div>
+                <div className="loot-item-info">
+                  <span className="loot-name">{drop.itemId}</span>
+                  <span className="loot-chance">{Math.round(drop.chance * 100)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ProgressBar: React.FC<{ creature: MonsterData; killCount: number }> = ({
+  creature,
+  killCount,
+}) => {
+  const milestones: ProgressMilestone[] = useMemo(() => {
+    return [
+      { kills: 250, reward: "1% Bonus Damage", achieved: killCount >= 250 },
+      { kills: 500, reward: "1% Damage Reduction", achieved: killCount >= 500 },
+      { kills: 1000, reward: "2% Bonus Damage & Reduction", achieved: killCount >= 1000 },
+      { kills: 1250, reward: "1% Better Loot Chance", achieved: killCount >= 1250 },
+    ];
+  }, [killCount]);
 
   const maxKills = 1250;
   const progressPercentage = Math.min(100, (killCount / maxKills) * 100);
@@ -74,13 +99,12 @@ const ProgressBar: React.FC<{ killCount: number }> = ({ killCount }) => {
             className="progress-bar-fill"
             style={{
               width: `${progressPercentage}%`,
-              minWidth: progressPercentage > 0 ? "4px" : "0px", // Ensure visibility even for small progress
+              minWidth: progressPercentage > 0 ? "4px" : "0px",
             }}
           />
           {milestones.map((milestone, index) => {
             const position = (milestone.kills / maxKills) * 100;
             const isLastMilestone = index === milestones.length - 1;
-            // Set last milestone to 99% to prevent cutoff at the edge
             const finalPosition = isLastMilestone ? 98 : position;
 
             return (
@@ -112,12 +136,21 @@ const ProgressBar: React.FC<{ killCount: number }> = ({ killCount }) => {
   );
 };
 
-const CreatureDetails: React.FC<{ creature: CreatureData }> = ({ creature }) => {
+const CreatureDetails: React.FC<{ creature: MonsterData; killCount: number }> = ({
+  creature,
+  killCount,
+}) => {
   return (
     <div className="creature-details">
       <div className="creature-header">
         <div className="creature-image-large">
-          <img src={creature.sprite} alt={creature.name} />
+          <img
+            src={`assets/outfit-preview/${creature.id}-preview.png`}
+            alt={creature.name}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "assets/outfit-preview/placeholder.png";
+            }}
+          />
         </div>
         <div className="creature-basic-info">
           <h2 className="creature-name">{creature.name}</h2>
@@ -133,33 +166,44 @@ const CreatureDetails: React.FC<{ creature: CreatureData }> = ({ creature }) => 
             </div>
             <div className="stat-row">
               <span className="stat-label">Times Killed:</span>
-              <span className="stat-value">{creature.killCount}</span>
+              <span className="stat-value">{killCount}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="creature-loot-section">
-        <h4>Loot Table</h4>
-        <div className="loot-items">
-          {creature.loot.map((lootItem, index) => (
-            <div key={index} className="loot-item">
-              <span className="loot-name">{lootItem.itemName}</span>
-              <span className="loot-chance">{lootItem.chance}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <ProgressBar killCount={creature.killCount} />
+      <LootTable creature={creature} />
+      <ProgressBar creature={creature} killCount={killCount} />
     </div>
   );
 };
 
 const Creatures: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  const [selectedCreature, setSelectedCreature] = useState<string>("decayed-skeleton");
+  const [selectedCreature, setSelectedCreature] = useState<string>("");
   const emitEvent = useEmitEvent();
+
+  const { getCreatureKillCount, getKilledCreaturesList } = useGameStore();
+
+  // Get creatures that have been killed at least once
+  const availableCreatures = useMemo(() => {
+    const killedCreatures = getKilledCreaturesList();
+    return killedCreatures
+      .map((killedCreature) => MonsterDictionary.getMonster(killedCreature.monsterId))
+      .filter((monster): monster is MonsterData => monster !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [getKilledCreaturesList]);
+
+  // Set first available creature as selected when creatures list changes
+  useEffect(() => {
+    if (availableCreatures.length > 0 && !selectedCreature) {
+      setSelectedCreature(availableCreatures[0].id);
+    } else if (availableCreatures.length === 0) {
+      setSelectedCreature("");
+    } else if (selectedCreature && !availableCreatures.find((c) => c.id === selectedCreature)) {
+      setSelectedCreature(availableCreatures[0].id);
+    }
+  }, [availableCreatures, selectedCreature]);
 
   // Listen for creatures toggle event
   useEventBus("creatures.toggle", (data: { visible: boolean }) => {
@@ -188,8 +232,8 @@ const Creatures: React.FC = () => {
     return null;
   }
 
-  const creatures = Object.values(MOCK_CREATURE_DATA);
-  const currentCreature = MOCK_CREATURE_DATA[selectedCreature as keyof typeof MOCK_CREATURE_DATA];
+  const currentCreature = selectedCreature ? MonsterDictionary.getMonster(selectedCreature) : null;
+  const currentKillCount = selectedCreature ? getCreatureKillCount(selectedCreature) : 0;
 
   return (
     <div className="creatures-container">
@@ -204,19 +248,33 @@ const Creatures: React.FC = () => {
         <div className="creatures-navigation">
           <h3>Encountered Creatures</h3>
           <div className="creature-nav-list">
-            {creatures.map((creature) => (
-              <CreatureNavigationItem
-                key={creature.id}
-                creature={creature}
-                isSelected={selectedCreature === creature.id}
-                onClick={() => setSelectedCreature(creature.id)}
-              />
-            ))}
+            {availableCreatures.length === 0 ? (
+              <div className="no-creatures-message">
+                <p>No creatures discovered yet.</p>
+                <p>Defeat monsters to unlock entries!</p>
+              </div>
+            ) : (
+              availableCreatures.map((creature) => (
+                <CreatureNavigationItem
+                  key={creature.id}
+                  creature={creature}
+                  killCount={getCreatureKillCount(creature.id)}
+                  isSelected={selectedCreature === creature.id}
+                  onClick={() => setSelectedCreature(creature.id)}
+                />
+              ))
+            )}
           </div>
         </div>
 
         <div className="creatures-main">
-          {currentCreature && <CreatureDetails creature={currentCreature} />}
+          {currentCreature ? (
+            <CreatureDetails creature={currentCreature} killCount={currentKillCount} />
+          ) : (
+            <div className="no-creature-selected">
+              <p>Select a creature from the list to view details</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

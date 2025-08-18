@@ -1,6 +1,13 @@
 import { MonsterData, ItemDrop, MonsterCategory, MonsterAttackType } from "@/types";
 import { eventBus } from "../utils/EventBus";
 
+export interface KillProgressMilestone {
+  killCount: number;
+  reward: string;
+  description: string;
+  completed?: boolean;
+}
+
 // MONSTER_DATA import moved to internal service
 const MONSTER_DATA: Record<string, MonsterData> = {
   "decayed-skeleton": {
@@ -286,6 +293,41 @@ class MonsterDictionaryService {
       console.error("Error getting monster experience reward:", error);
       return 0;
     }
+  }
+
+  getKillProgressForCreature(monsterId: string, currentKills: number): KillProgressMilestone[] {
+    // Standard milestones for all creatures
+    const milestones: KillProgressMilestone[] = [
+      {
+        killCount: 250,
+        reward: "1% Bonus Damage",
+        description: "1% Bonus Damage",
+        completed: false,
+      },
+      {
+        killCount: 500,
+        reward: "1% Damage Reduction",
+        description: "1% Damage Reduction",
+        completed: false,
+      },
+      {
+        killCount: 1000,
+        reward: "2% Bonus Damage & Reduction",
+        description: "2% Bonus Damage & Reduction",
+        completed: false,
+      },
+      {
+        killCount: 1250,
+        reward: "1% Better Loot Chance",
+        description: "1% Better Loot Chance",
+        completed: false,
+      },
+    ];
+
+    return milestones.map((milestone) => ({
+      ...milestone,
+      completed: currentKills >= milestone.killCount,
+    }));
   }
 }
 

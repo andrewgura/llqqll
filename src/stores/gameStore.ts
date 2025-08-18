@@ -10,6 +10,7 @@ import { SkillsStore, createSkillsStore } from "./components/skillsStore";
 import { SystemStore, createSystemStore } from "./components/systemStore";
 import { UIStore, createUIStore } from "./components/uiStore";
 import { createOutfitStore, OutfitStore } from "./components/outfitStore";
+import { createCreatureStore, CreatureStore } from "./components/creatureStore";
 
 // Combined store type that includes all stores
 export type GameStore = GameState &
@@ -20,7 +21,8 @@ export type GameStore = GameState &
   QuestStore &
   UIStore &
   SystemStore &
-  OutfitStore;
+  OutfitStore &
+  CreatureStore;
 
 // Create the main game store by combining all stores
 export const useGameStore = create<GameStore>()(
@@ -33,5 +35,6 @@ export const useGameStore = create<GameStore>()(
     ...createUIStore(set, get, store),
     ...createSystemStore(set, get, store),
     ...createOutfitStore(set, get, store),
+    ...createCreatureStore(set, get, store),
   }))
 );
