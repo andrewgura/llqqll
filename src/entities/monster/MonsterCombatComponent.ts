@@ -100,7 +100,7 @@ export class MonsterCombatComponent extends Component {
       const isMagicDamage = DamageFormulas.isMagicDamage(this.attackType);
 
       // CHANGED: Call player's takeDamage method with calculated damage and magic flag
-      player.takeDamage(finalDamage, isMagicDamage);
+      player.takeDamage(finalDamage, isMagicDamage, this.monster.monsterType);
 
       // Emit attack event
       eventBus.emit("monster.attack.hit", {

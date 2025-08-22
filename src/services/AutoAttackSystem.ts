@@ -4,6 +4,7 @@ import { useGameStore } from "../stores/gameStore";
 import { ItemDictionary } from "./ItemDictionaryService";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { DamageFormulas } from "@/utils/formulas";
+import { KillBonusService } from "./KillBonusService";
 
 class AutoAttackSystemService {
   private targetedEnemy: any | null = null;
@@ -484,14 +485,20 @@ class AutoAttackSystemService {
     const equipment = store.playerCharacter.equipment;
     const skills = store.playerCharacter.skills;
 
-    // Use our new damage formula
-    return DamageFormulas.calculatePlayerAutoAttackDamage(
+    // Calculate base damage using existing formula
+    const baseDamage = DamageFormulas.calculatePlayerAutoAttackDamage(
       equipment,
       skills,
       this.currentWeaponType
     );
-  }
 
+    // Apply kill bonus if we have a target
+    if (this.targetedEnemy && this.targetedEnemy.monsterType) {
+      return KillBonusService.applyDamageBonus(baseDamage, this.targetedEnemy.monsterType);
+    }
+
+    return baseDamage;
+  }
   /**
    * Apply damage to the target
    */

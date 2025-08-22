@@ -3,6 +3,7 @@ import { Component } from "../Component";
 import { Monster } from "../Monster";
 import { ItemDrop } from "@/types";
 import { eventBus } from "@/utils/EventBus";
+import { KillBonusService } from "@/services/KillBonusService";
 
 export class MonsterDropComponent extends Component {
   private possibleDrops: ItemDrop[] = [];
@@ -37,8 +38,14 @@ export class MonsterDropComponent extends Component {
 
       // Process each possible drop
       this.possibleDrops.forEach((drop) => {
-        // Calculate if the item drops based on chance
-        if (Math.random() < drop.chance) {
+        // Apply kill bonus to drop chance
+        const modifiedChance = KillBonusService.applyLootBonus(
+          drop.chance,
+          this.monster.monsterType
+        );
+
+        // Calculate if the item drops based on modified chance
+        if (Math.random() < modifiedChance) {
           // Get the game scene
           const gameScene = this.entity.scene as any;
 
@@ -64,13 +71,13 @@ export class MonsterDropComponent extends Component {
                 y + offsetY,
                 undefined, // instanceId
                 undefined, // bonusStats
-                quantity // quantity - this is the key fix!
+                quantity // quantity
               );
 
               if (item) {
                 drops.push({
                   itemId: item.templateId,
-                  quantity: quantity, // Record the actual quantity dropped
+                  quantity: quantity,
                 });
               }
             } else {

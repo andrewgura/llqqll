@@ -5,6 +5,7 @@ import { Ability } from "@/types";
 import { DamageFormulas } from "@/utils/formulas";
 import { useGameStore } from "@/stores/gameStore";
 import { eventBus } from "@/utils/EventBus";
+import { KillBonusService } from "@/services/KillBonusService";
 
 /**
  * Base strategy class with common functionality for ability strategies
@@ -48,17 +49,25 @@ export abstract class BaseStrategy implements AnimationStrategy {
       const equipment = store.playerCharacter.equipment;
       const skills = store.playerCharacter.skills;
 
-      // Calculate final damage using our formulas
-      const finalDamage = DamageFormulas.calculatePlayerAbilityFinalDamage(
+      // Calculate base damage using our formulas
+      const baseDamage = DamageFormulas.calculatePlayerAbilityDamage(
         ability.damage || 0,
         equipment,
-        skills, // This now accepts 'any' type
-        ability.skillId || "meleeWeapons",
-        monster.armor // This should now work since we added armor property
+        skills,
+        ability.skillId || "meleeWeapons"
       );
 
-      // Determine if this is magic damage
+      // Apply kill bonus to ability damage
+      const bonusedDamage = KillBonusService.applyDamageBonus(baseDamage, monster.monsterType);
+
+      // Apply armor reduction
       const isMagicDamage = DamageFormulas.isMagicDamage(undefined, ability.skillId);
+      const damageReduction = DamageFormulas.calculateMonsterDamageReduction(monster.armor);
+      const finalDamage = DamageFormulas.applyDamageReduction(
+        bonusedDamage,
+        damageReduction,
+        isMagicDamage
+      );
 
       // Apply damage to monster
       monster.takeDamage(finalDamage, isMagicDamage);
@@ -69,7 +78,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
       // Award skill experience
       this.awardSkillExperience(ability.skillId || "meleeWeapons", finalDamage);
     } catch (error) {
-      console.error("Error applying ability damage to monster:", error);
+      console.error("Error in BaseStrategy.applyAbilityDamageToMonster:", error);
     }
   }
 

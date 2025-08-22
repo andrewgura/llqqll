@@ -163,10 +163,10 @@ const ProgressBar: React.FC<{ creature: MonsterData; killCount: number }> = ({
   const progressPercentage = Math.min((killCount / maxKills) * 100, 100);
 
   const milestones = [
-    { killCount: 250, reward: "+1% Bonus Damage", completed: killCount >= 250 },
-    { killCount: 500, reward: "+1% Damage Reduction", completed: killCount >= 500 },
-    { killCount: 1000, reward: "+2% Bonus Damage & Reduction", completed: killCount >= 1000 },
-    { killCount: 1250, reward: "+1% Better Loot Chance", completed: killCount >= 1250 },
+    { killCount: 250, reward: "+5% Bonus Damage", completed: killCount >= 250 },
+    { killCount: 500, reward: "+5% Damage Reduction", completed: killCount >= 500 },
+    { killCount: 1000, reward: "+5% Bonus Damage & Reduction", completed: killCount >= 1000 },
+    { killCount: 1250, reward: "+4% Better Loot Chance", completed: killCount >= 1250 },
   ];
 
   return (

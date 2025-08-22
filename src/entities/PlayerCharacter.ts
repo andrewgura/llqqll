@@ -7,6 +7,7 @@ import { eventBus } from "@/utils/EventBus";
 import { useGameStore } from "@/stores/gameStore";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { DamageFormulas } from "@/utils/formulas";
+import { KillBonusService } from "@/services/KillBonusService";
 
 export class PlayerCharacter extends Character {
   equipment: any;
@@ -409,7 +410,7 @@ export class PlayerCharacter extends Character {
     }
   }
 
-  takeDamage(amount: number, isMagicDamage: boolean = false): boolean {
+  takeDamage(amount: number, isMagicDamage: boolean = false, attackerMonsterId?: string): boolean {
     try {
       // Skip if already dead
       if (this.isDead) return false;
@@ -419,13 +420,18 @@ export class PlayerCharacter extends Character {
       const equipment = store.playerCharacter.equipment;
       const skills = store.playerCharacter.skills;
 
-      // Calculate final damage using our new formulas
-      const finalDamage = DamageFormulas.calculatePlayerDamageTaken(
+      // Calculate damage reduction using existing formulas
+      let finalDamage = DamageFormulas.calculatePlayerDamageTaken(
         amount,
         equipment,
         skills,
         isMagicDamage
       );
+
+      // Apply kill bonus damage reduction if we know what attacked us
+      if (attackerMonsterId) {
+        finalDamage = KillBonusService.applyDamageReduction(finalDamage, attackerMonsterId);
+      }
 
       // Calculate new health
       const newHealth = Math.max(0, this.health - finalDamage);
@@ -463,23 +469,11 @@ export class PlayerCharacter extends Character {
         onComplete: () => {
           this.alpha = originalAlpha;
         },
-        onStop: () => {
-          this.alpha = originalAlpha;
-        },
       });
-
-      // Shake camera for significant damage
-      if (finalDamage > this.maxHealth * 0.1) {
-        this.scene.cameras.main.shake(250, 0.01);
-      }
-
-      // Show floating damage number
-      this.showDamageNumber(finalDamage);
 
       return false;
     } catch (error) {
-      console.error("Error in PlayerCharacter takeDamage:", error);
-      eventBus.emit("error.player.damage", { error, amount });
+      console.error("Error in PlayerCharacter.takeDamage:", error);
       return false;
     }
   }
