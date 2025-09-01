@@ -1,7 +1,5 @@
 import { ItemData, ItemCategory, ItemSets, ItemType, PlayerAttackType } from "@/types";
-import { eventBus } from "../utils/EventBus";
 
-// ITEM_DATA import moved to internal service
 const ITEM_DATA: Record<string, ItemData> = {
   // Melee Weapons
   sword1: {
@@ -68,6 +66,8 @@ const ITEM_DATA: Record<string, ItemData> = {
     power: 3,
     armor: 2,
     weight: 10,
+    secondaryAttackType: PlayerAttackType.Magic,
+    moveSpeed: 200,
     description: "A two-handed sword that deals heavy damage.",
     texture: "great-sword",
     isTwoHanded: true,
