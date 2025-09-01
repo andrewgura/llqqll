@@ -1,4 +1,4 @@
-import { ItemData, ItemCategory, ItemSets, ItemType } from "@/types";
+import { ItemData, ItemCategory, ItemSets, ItemType, PlayerAttackType } from "@/types";
 import { eventBus } from "../utils/EventBus";
 
 // ITEM_DATA import moved to internal service
@@ -29,6 +29,8 @@ const ITEM_DATA: Record<string, ItemData> = {
     weaponType: "melee",
     power: 4,
     armor: 2,
+    secondaryAttackType: PlayerAttackType.Magic,
+    secondaryDamagePeanlty: 75,
     weight: 10,
     description: "A magical sword engulfed in flames. Deal bonus magic damage",
     texture: "fire-sword",

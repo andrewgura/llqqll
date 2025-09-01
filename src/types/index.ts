@@ -130,9 +130,9 @@ export interface ItemData {
   weaponType?: string;
   isTwoHanded?: boolean;
 
-  // Special Attack
-  specialPower?: number;
-  specialCategory?: ItemCategory; // Melee, Magic, or Ranged. This attack with scale with that Skill
+  // Secondary Attack
+  secondaryDamagePeanlty?: number;
+  secondaryAttackType?: PlayerAttackType; // Melee, Magic, or Ranged. This attack with scale with that Skill
 
   // Stats
   power?: number;
@@ -389,6 +389,12 @@ export interface DamageEvent {
   targetType: string; // 'monster'
   targetId: string; // monster type
   damage: number;
+}
+
+export enum PlayerAttackType {
+  Melee = "melee",
+  Ranged = "ranged",
+  Magic = "magic",
 }
 
 /**
