@@ -1,18 +1,17 @@
-// src/stores/stores/playerStore.ts
 import { StateCreator } from "zustand";
 import { GameState, PlayerCharacterState, CalculatedStats } from "../types/gameTypes";
-import { PlayerCharacterEquipment, ItemInstance } from "../../types";
+import { Classes, PlayerCharacterEquipment } from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 import { eventBus } from "../../utils/EventBus";
 import { experienceSystem } from "../../services/ExperienceSystem";
 import { calculateEquipmentBonuses, calculateTotalStats } from "./equipmentStore";
 
-// Initial player state - EXACT COPY from original
 const initialPlayerState: PlayerCharacterState = {
   health: 100,
   maxHealth: 100,
   lastAttackTime: 0,
   experience: 0,
+  class: Classes.KNIGHT,
   equipment: {
     weapon: null,
     shield: null,

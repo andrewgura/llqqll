@@ -297,9 +297,10 @@ export interface PlayerCharacterState {
 
 // Classes
 export enum Classes {
-  WARRIOR = "warrior",
+  KNIGHT = "knight",
   MAGE = "mage",
   RANGER = "ranger",
+  NONE = "none",
 }
 
 // ======================================================

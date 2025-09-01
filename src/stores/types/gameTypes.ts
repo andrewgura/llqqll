@@ -5,6 +5,7 @@ import {
   SetCollectionData,
   Quest,
   QuestCompletionHistory,
+  Classes,
 } from "../../types";
 
 export interface CalculatedStats {
@@ -37,6 +38,7 @@ export interface PlayerCharacterState {
   maxHealth: number;
   lastAttackTime: number;
   experience: number;
+  class: Classes;
   equipment: PlayerCharacterEquipment;
   inventory: ItemInstance[];
   skills: {
