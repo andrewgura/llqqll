@@ -77,6 +77,19 @@ const NPC_DATA: Record<string, NPCData> = {
     },
     interactionRadius: 200,
   },
+  "stat-seller": {
+    id: "stat-seller",
+    name: "Stat Seller",
+    texture: "playerCharacter",
+    dialog: [
+      "Hello there! I'm Al Dee, the finest merchant in these parts.",
+      "I have wares from across the realm!",
+      "What can I interest you in today?",
+    ],
+    isMainQuestGiver: false,
+    interactionRadius: 200,
+    isStatSeller: true,
+  },
 };
 
 class NPCServicel {
