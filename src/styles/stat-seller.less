@@ -1,0 +1,301 @@
+/* stat-seller.less - Standalone styles for the stat buying interface */
+
+.stat-seller-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 2px solid #664f33;
+  border-radius: 8px;
+  color: #ffffff;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-seller-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid #664f33;
+
+  h2 {
+    margin: 0;
+    color: #ffcc00;
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .player-resources {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+
+    div {
+      font-size: 14px;
+      color: #cccccc;
+
+      &:first-child {
+        color: #ffcc00;
+        font-weight: bold;
+      }
+
+      &:last-child {
+        color: #00ffff;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .stat-seller-close-button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #ffcc00;
+    }
+  }
+}
+
+.stat-seller-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stat-seller-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid #555555;
+  border-radius: 5px;
+
+  p {
+    margin: 0 0 10px 0;
+    color: #cccccc;
+    line-height: 1.4;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: #ff6b6b;
+    }
+  }
+}
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-buy-row {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid #555555;
+  border-radius: 5px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: #664f33;
+  }
+
+  .stat-icon {
+    font-size: 24px;
+    margin-right: 15px;
+    width: 32px;
+    text-align: center;
+  }
+
+  .stat-details {
+    flex: 1;
+
+    .stat-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 5px;
+    }
+
+    .stat-current {
+      font-size: 14px;
+      color: #cccccc;
+      margin-bottom: 8px;
+    }
+
+    .stat-cost {
+      display: flex;
+      gap: 15px;
+
+      .gold-cost {
+        color: #ffcc00;
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      .exp-cost {
+        color: #00ffff;
+        font-weight: bold;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .buy-stat-button {
+    padding: 10px 20px;
+    background: linear-gradient(145deg, #4a4a4a, #333333);
+    color: #ffffff;
+    border: 1px solid #664f33;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    min-width: 80px;
+
+    &:hover:not(.disabled) {
+      background: linear-gradient(145deg, #5a5a5a, #4a4a4a);
+      border-color: #8a6f4a;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    &:active:not(.disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #2a2a2a;
+      color: #666666;
+      border-color: #444444;
+    }
+  }
+}
+
+/* Skills window updates for purchased stats */
+.purchased-stat-bonus {
+  color: #00ff00;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stat-seller-container {
+    width: 95vw;
+    max-height: 90vh;
+  }
+
+  .stat-seller-header {
+    padding: 10px 15px;
+
+    h2 {
+      font-size: 16px;
+    }
+
+    .player-resources div {
+      font-size: 12px;
+    }
+  }
+
+  .stat-seller-content {
+    padding: 15px;
+  }
+
+  .stat-buy-row {
+    padding: 12px;
+
+    .stat-icon {
+      font-size: 20px;
+      margin-right: 10px;
+      width: 24px;
+    }
+
+    .stat-details .stat-name {
+      font-size: 14px;
+    }
+
+    .buy-stat-button {
+      padding: 8px 15px;
+      font-size: 12px;
+      min-width: 70px;
+    }
+  }
+}
+
+/* Animation for successful purchase */
+@keyframes statPurchaseSuccess {
+  0% {
+    transform: scale(1);
+    background-color: rgba(0, 255, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    background-color: rgba(0, 255, 0, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+}
+
+.stat-buy-row.purchase-success {
+  animation: statPurchaseSuccess 0.6s ease-out;
+}
+
+/* Dark fantasy color scheme */
+.stat-seller-container {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.stat-seller-header h2 {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.stat-buy-row:hover .stat-name {
+  color: #ffcc00;
+  transition: color 0.2s ease;
+}
+
+/* Scrollbar styling for the content area */
+.stat-seller-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stat-seller-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.stat-seller-content::-webkit-scrollbar-thumb {
+  background: #664f33;
+  border-radius: 4px;
+}
+
+.stat-seller-content::-webkit-scrollbar-thumb:hover {
+  background: #8a6f4a;
+}

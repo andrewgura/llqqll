@@ -1,10 +1,8 @@
-// src/components/ui/QuestGiverDialog.tsx
+import { ItemDictionary } from "@/services/ItemDictionaryService";
+import { QuestDefinition, questService } from "@/services/QuestService";
+import { useGameStore } from "@/stores/gameStore";
+import { Quest } from "@/types";
 import React, { useState, useEffect } from "react";
-import { questService, QuestDefinition } from "../../services/QuestService";
-import { useGameStore } from "../../stores/gameStore";
-import { Quest } from "../../types";
-import { ItemDictionary } from "../../services/ItemDictionaryService";
-
 interface QuestGiverDialogProps {
   npcId: string;
   npcName: string;

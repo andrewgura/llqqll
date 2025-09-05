@@ -93,6 +93,29 @@ const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
   );
 };
 
+// NEW: SecondaryStatRowWithPurchased component for stat buying system
+const SecondaryStatRowWithPurchased: React.FC<{
+  statId: string;
+  label: string;
+  icon: string;
+  totalValue: number;
+  purchasedValue: number;
+  formatValue?: (value: number) => string;
+}> = ({ statId, label, icon, totalValue, purchasedValue, formatValue }) => {
+  const displayValue = formatValue ? formatValue(totalValue) : totalValue;
+
+  return (
+    <div id={`stat-row-${statId}`} className="secondary-stat-row">
+      <div className="secondary-stat-icon">{icon}</div>
+      <div className="secondary-stat-name">{label}</div>
+      <div id={`${statId}-value`} className="secondary-stat-value">
+        {displayValue}
+        {purchasedValue > 0 && <span className="purchased-stat-bonus"> (+{purchasedValue})</span>}
+      </div>
+    </div>
+  );
+};
+
 interface TooltipProps {
   skillId: string;
   skill: SkillData;
@@ -187,7 +210,7 @@ enum SkillTab {
 }
 
 const SkillsWindow: React.FC = () => {
-  const { playerCharacter, calculatedStats } = useGameStore();
+  const { playerCharacter, calculatedStats, getPurchasedStatValue } = useGameStore();
   const [activeTab, setActiveTab] = useState<SkillTab>(SkillTab.MAIN);
   const [tooltipState, setTooltipState] = useState<{
     visible: boolean;
@@ -211,6 +234,18 @@ const SkillsWindow: React.FC = () => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
   const emitEvent = useEmitEvent();
+
+  // Secondary stat icons
+  const secondaryStatIcons = {
+    health: "❤️",
+    mana: "💙",
+    power: "⚔️",
+    armor: "🛡️",
+    healthRegen: "💗",
+    manaRegen: "💙",
+    attackSpeed: "⚡",
+    moveSpeed: "👟",
+  };
 
   // Listen for toggle events
   useEventBus("skills.toggle", (data: { visible: boolean }) => {
@@ -297,6 +332,11 @@ const SkillsWindow: React.FC = () => {
     }
   };
 
+  // Get player level data from experience system
+  const getPlayerLevelData = () => {
+    return experienceSystem.calculateLevelFromExperience(playerCharacter.experience);
+  };
+
   /**
    * Get attack speed display value (cooldown in seconds)
    */
@@ -315,6 +355,7 @@ const SkillsWindow: React.FC = () => {
    */
   const AttackSpeedStatRow: React.FC = () => {
     const displayValue = getAttackSpeedDisplayValue();
+    const purchasedValue = getPurchasedStatValue("attackSpeed");
 
     return (
       <div id="stat-row-attackSpeed" className="secondary-stat-row">
@@ -322,6 +363,7 @@ const SkillsWindow: React.FC = () => {
         <div className="secondary-stat-name">Attack Speed</div>
         <div id="attackSpeed-value" className="secondary-stat-value">
           {displayValue}
+          {purchasedValue > 0 && <span className="purchased-stat-bonus"> (+{purchasedValue})</span>}
         </div>
       </div>
     );
@@ -331,6 +373,7 @@ const SkillsWindow: React.FC = () => {
     const totalMoveSpeed = calculatedStats.totalMoveSpeed;
     const baseMoveSpeed = 250;
     const moveSpeed = Math.round(totalMoveSpeed / baseMoveSpeed);
+    const purchasedValue = getPurchasedStatValue("moveSpeed");
 
     return (
       <div id="stat-row-moveSpeed" className="secondary-stat-row">
@@ -338,31 +381,17 @@ const SkillsWindow: React.FC = () => {
         <div className="secondary-stat-name">Movement Speed</div>
         <div id="moveSpeed-value" className="secondary-stat-value">
           {moveSpeed}
+          {purchasedValue > 0 && <span className="purchased-stat-bonus"> (+{purchasedValue})</span>}
         </div>
       </div>
     );
   };
 
-  // Icons for secondary stats
-  const secondaryStatIcons: Record<string, string> = {
-    health: "❤️",
-    mana: "💙",
-    power: "⚔️",
-    armor: "🛡️",
-    moveSpeed: "👟",
-    healthRegen: "💗",
-    manaRegen: "💦",
-    attackSpeed: "💨",
-  };
-
-  // Handle mouse down for dragging
+  // Dragging functions
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (
-      windowRef.current &&
-      e.target === windowRef.current.querySelector(".skills-window-header")
-    ) {
+    const rect = windowRef.current?.getBoundingClientRect();
+    if (rect) {
       setIsDragging(true);
-      const rect = windowRef.current.getBoundingClientRect();
       setDragOffset({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
@@ -370,77 +399,41 @@ const SkillsWindow: React.FC = () => {
     }
   };
 
-  // Handle mouse move for dragging
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-
-    setPosition({
-      x: e.clientX - dragOffset.x,
-      y: e.clientY - dragOffset.y,
-    });
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      });
+    }
   };
 
-  // Handle mouse up to stop dragging
   const handleMouseUp = () => {
     setIsDragging(false);
   };
 
-  // Handle close button
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
   const handleClose = () => {
     setVisible(false);
     emitEvent("skills.visibility.changed", false);
     emitEvent("ui.message.show", "Skills window closed");
   };
 
-  const getPlayerLevelData = (): {
-    level: number;
-    currentExp: number;
-    expForNextLevel: number;
-    progressPercent: number;
-  } => {
-    const totalExp = playerCharacter.experience;
-    const levelData = experienceSystem.calculateLevelFromExperience(totalExp);
-
-    const progressPercent =
-      levelData.expForNextLevel > 0
-        ? Math.floor((levelData.currentExp / levelData.expForNextLevel) * 100)
-        : 100;
-
-    return {
-      ...levelData,
-      progressPercent,
-    };
-  };
-
-  // Add and remove event listeners
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging]);
-
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   return (
-    <div
-      className="skills-window-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-    >
+    <div className="skills-window-overlay">
       <div
         ref={windowRef}
         className="skills-window"
@@ -597,22 +590,24 @@ const SkillsWindow: React.FC = () => {
               </div>
 
               <div className="secondary-stats-grid">
-                {/* Regeneration Stats Section */}
+                {/* Regeneration Stats Section - WITH PURCHASED STATS */}
                 <div className="secondary-stats-section">
                   <h4 className="secondary-stats-header">Regeneration</h4>
 
-                  <SecondaryStatRow
+                  <SecondaryStatRowWithPurchased
                     statId="healthRegen"
-                    statName="Health Regen"
-                    baseValue={getTotalStatValue("healthRegen")}
+                    label="Health Regen"
                     icon={secondaryStatIcons.healthRegen}
+                    totalValue={calculatedStats.totalHealthRegen}
+                    purchasedValue={getPurchasedStatValue("hpRegen")}
                   />
 
-                  <SecondaryStatRow
+                  <SecondaryStatRowWithPurchased
                     statId="manaRegen"
-                    statName="Mana Regen"
-                    baseValue={getTotalStatValue("manaRegen")}
+                    label="Mana Regen"
                     icon={secondaryStatIcons.manaRegen}
+                    totalValue={calculatedStats.totalManaRegen}
+                    purchasedValue={getPurchasedStatValue("mpRegen")}
                   />
                 </div>
 

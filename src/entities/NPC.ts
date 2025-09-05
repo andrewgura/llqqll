@@ -1,6 +1,5 @@
 import { Character } from "./Character";
 import { HealthComponent } from "./HealthComponent";
-import { NPCDialogComponent } from "./npc/NPCDialogComponent";
 import { eventBus } from "@/utils/EventBus";
 import { ShopItem, NPCService } from "@/services/NPCService";
 
@@ -12,6 +11,7 @@ export interface NPCData {
   interactionRadius?: number;
   isMerchant?: boolean;
   shopItems?: ShopItem[];
+  isStatSeller?: boolean;
 }
 
 export class NPC extends Character {
@@ -19,8 +19,10 @@ export class NPC extends Character {
   facing: string = "down";
   dialogData: string[] = [];
   interactionRadius: number = 64;
-  isMerchant: boolean = false;
   shopItems: ShopItem[] = [];
+
+  isMerchant: boolean = false;
+  isStatSeller: boolean = false;
 
   // UI elements
   private merchantIcon: Phaser.GameObjects.Text | null = null;
@@ -39,6 +41,7 @@ export class NPC extends Character {
       this.interactionRadius = npcData.interactionRadius || 64;
       this.isMerchant = npcData.isMerchant || false;
       this.shopItems = npcData.shopItems || [];
+      this.isStatSeller = npcData.isStatSeller || false;
 
       // Set origin to center the sprite on the tile
       this.setOrigin(0.8, 0.8);
@@ -107,10 +110,6 @@ export class NPC extends Character {
     try {
       // Health component (NPCs typically don't need health, but inheriting from Character requires it)
       this.components.add("health", new HealthComponent(this));
-
-      // Dialog component
-      const dialogComponent = new NPCDialogComponent(this, this.dialogData);
-      this.components.add("dialog", dialogComponent);
     } catch (error) {
       console.error(`Error adding components to NPC ${this.id}:`, error);
       eventBus.emit("error.npc.components", {
@@ -272,37 +271,39 @@ export class NPC extends Character {
 
   private handleClick(): void {
     try {
-      // Check distance to player
       const scene = this.scene as any;
       if (!scene.playerCharacter) return;
 
       const player = scene.playerCharacter;
       const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
 
-      // If player is within interaction radius and this is a merchant, open shop
-      if (distance <= this.interactionRadius && this.isMerchant) {
-        this.openShop();
-      } else if (distance <= this.interactionRadius) {
-        // For non-merchants, just show dialog
-        this.interact();
+      if (distance <= this.interactionRadius) {
+        if (this.isStatSeller) {
+          this.openStatSeller();
+        } else if (this.isMerchant) {
+          this.openShop();
+        } else {
+          this.openQuest();
+        }
       }
     } catch (error) {
       console.error(`Error handling click for NPC ${this.id}:`, error);
-      eventBus.emit("error.npc.click", {
-        id: this.id,
-        error,
+    }
+  }
+
+  openStatSeller(): void {
+    try {
+      eventBus.emit("stat-seller.open", {
+        npcId: this.id,
+        npcName: this.npcName,
       });
+    } catch (error) {
+      console.error(`Error opening stat seller for NPC ${this.id}:`, error);
     }
   }
 
   openShop(): void {
     try {
-      if (!this.isMerchant || this.shopItems.length === 0) {
-        // If not a merchant or no items to sell, just show dialog
-        this.interact();
-        return;
-      }
-
       // Emit an event that the shop UI can listen to
       eventBus.emit("shop.open", {
         npcId: this.id,
@@ -348,7 +349,7 @@ export class NPC extends Character {
     }
   }
 
-  interact(): void {
+  openQuest(): void {
     try {
       // Check if this NPC is a quest giver
       const npcData = NPCService.getNPC(this.id);
@@ -361,12 +362,6 @@ export class NPC extends Character {
           npcName: this.npcName,
           availableQuests: questIds,
         });
-      } else {
-        // Regular dialog interaction
-        const dialogComponent = this.components.get<NPCDialogComponent>("dialog");
-        if (dialogComponent) {
-          dialogComponent.startDialog();
-        }
       }
 
       // Emit interaction event

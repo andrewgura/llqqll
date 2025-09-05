@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { GameState, PlayerCharacterState, CalculatedStats } from "../types/gameTypes";
-import { Classes, PlayerCharacterEquipment } from "../../types";
+import { Classes, PlayerCharacterEquipment, PurchasedStats } from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 import { eventBus } from "../../utils/EventBus";
 import { experienceSystem } from "../../services/ExperienceSystem";
@@ -47,6 +47,18 @@ const initialPlayerState: PlayerCharacterState = {
   questPoints: 0,
   maxCapacity: 40,
   currentCapacity: 10,
+  purchasedStats: {
+    hpRegen: 0,
+    mpRegen: 0,
+    attackSpeed: 0,
+    moveSpeed: 0,
+  },
+  statPurchaseRecord: {
+    hpRegen: 0,
+    mpRegen: 0,
+    attackSpeed: 0,
+    moveSpeed: 0,
+  },
 };
 
 const initialCalculatedStats: CalculatedStats = {
@@ -92,6 +104,11 @@ export interface PlayerStore {
   getPlayerLevelFromExperience: () => any;
   updatePlayerExperienceAndLevel: (newTotalExp: number) => void;
   registerExperienceSystem: () => void;
+
+  // Stat buying methods
+  updatePurchasedStats: (statId: keyof PurchasedStats, amount: number) => void;
+  getPurchasedStatValue: (statId: keyof PurchasedStats) => number;
+  getStatPurchaseCount: (statId: keyof PurchasedStats) => number;
 }
 
 export const createPlayerStore: StateCreator<GameState & PlayerStore, [], [], PlayerStore> = (
@@ -272,5 +289,60 @@ export const createPlayerStore: StateCreator<GameState & PlayerStore, [], [], Pl
 
       return newState;
     });
+  },
+
+  // Stat buying methods
+  updatePurchasedStats: (statId: keyof PurchasedStats, amount: number) => {
+    set((state) => {
+      const newPurchasedStats = {
+        ...state.playerCharacter.purchasedStats,
+        [statId]: (state.playerCharacter.purchasedStats?.[statId] || 0) + amount,
+      };
+
+      const newStatPurchaseRecord = {
+        ...state.playerCharacter.statPurchaseRecord,
+        [statId]: (state.playerCharacter.statPurchaseRecord?.[statId] || 0) + amount,
+      };
+
+      const newState = {
+        playerCharacter: {
+          ...state.playerCharacter,
+          purchasedStats: newPurchasedStats,
+          statPurchaseRecord: newStatPurchaseRecord,
+        },
+      };
+
+      // Recalculate stats including purchased stats
+      const equipmentBonuses = calculateEquipmentBonuses(newState.playerCharacter.equipment);
+      const calculatedStats = calculateTotalStats(newState.playerCharacter, equipmentBonuses);
+
+      // Emit events for stat updates
+      eventBus.emit("player.stats.updated", calculatedStats);
+      eventBus.emit("player.stat.purchased", {
+        statId,
+        amount,
+        newValue: newPurchasedStats[statId],
+      });
+
+      // Update move speed for movement system if moveSpeed was purchased
+      if (statId === "moveSpeed") {
+        eventBus.emit("player.moveSpeed.updated", calculatedStats.totalMoveSpeed);
+      }
+
+      return {
+        ...newState,
+        calculatedStats,
+      };
+    });
+  },
+
+  getPurchasedStatValue: (statId: keyof PurchasedStats) => {
+    const state = get();
+    return state.playerCharacter.purchasedStats?.[statId] || 0;
+  },
+
+  getStatPurchaseCount: (statId: keyof PurchasedStats) => {
+    const state = get();
+    return state.playerCharacter.statPurchaseRecord?.[statId] || 0;
   },
 });

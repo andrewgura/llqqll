@@ -6,6 +6,8 @@ import {
   Quest,
   QuestCompletionHistory,
   Classes,
+  PurchasedStats,
+  StatPurchaseRecord,
 } from "../../types";
 
 export interface CalculatedStats {
@@ -53,6 +55,8 @@ export interface PlayerCharacterState {
   maxCapacity: number;
   currentCapacity: number;
   teleportPosition?: { x: number; y: number };
+  purchasedStats?: PurchasedStats;
+  statPurchaseRecord?: StatPurchaseRecord;
 }
 
 export interface QuestState {

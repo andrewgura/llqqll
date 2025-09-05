@@ -152,6 +152,23 @@ export interface ItemData {
 }
 
 // ======================================================
+// Stat Buying
+// ======================================================
+
+export interface PurchasedStats {
+  hpRegen: number;
+  mpRegen: number;
+  attackSpeed: number;
+  moveSpeed: number;
+}
+
+export interface StatPurchaseRecord {
+  hpRegen: number;
+  mpRegen: number;
+  attackSpeed: number;
+  moveSpeed: number;
+}
+// ======================================================
 // Monster Types
 // ======================================================
 
@@ -293,6 +310,8 @@ export interface PlayerCharacterState {
   maxCapacity: number;
   currentCapacity: number;
   teleportPosition?: { x: number; y: number };
+  purchasedStats: PurchasedStats;
+  statPurchaseRecord: StatPurchaseRecord;
 }
 
 // Classes

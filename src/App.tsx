@@ -18,11 +18,12 @@ import SkillsWindow from "./components/ui/Skills";
 import Resources from "./components/ui/Resources";
 import Creatures from "./components/ui/Creatures";
 import CurrencyDisplay from "./components/ui/CurrencyDisplay";
-import QuestGiverDialog from "./components/ui/QuestGiverDialog";
 import { eventBus } from "./utils/EventBus";
 import ExperiencePopups from "./components/ui/ExperiencePopup";
 import LevelUpNotification from "./components/ui/LevelUpNotification";
 import Outfits from "./components/ui/Outfits";
+import StatSellerInterface from "./components/ui/npc-dialogs/StatSellerInterface";
+import QuestGiverDialog from "./components/ui/npc-dialogs/QuestGiverDialog";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -111,6 +112,7 @@ function App() {
               <Outfits />
               <DeathManager />
               <GameItemTooltip />
+              <StatSellerInterface />
               <QuestGiverDialog
                 npcId={questGiverDialog.npcId}
                 npcName={questGiverDialog.npcName}

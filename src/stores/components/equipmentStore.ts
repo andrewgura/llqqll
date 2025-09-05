@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { GameState, CalculatedStats } from "../types/gameTypes";
-import { PlayerCharacterEquipment, ItemInstance } from "../../types";
+import { PlayerCharacterEquipment, ItemInstance, PlayerCharacterState } from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 import { eventBus } from "../../utils/EventBus";
 
@@ -74,7 +74,7 @@ export const calculateEquipmentBonuses = (equipment: PlayerCharacterEquipment) =
 };
 
 export const calculateTotalStats = (
-  playerCharacter: any,
+  playerCharacter: PlayerCharacterState,
   equipmentBonuses: any
 ): CalculatedStats => {
   const baseHealth = 100;
@@ -98,15 +98,22 @@ export const calculateTotalStats = (
   const skillPowerBonus = Math.floor((meleeLevel - 1) * 0.5);
   const skillArmorBonus = Math.floor((shieldLevel - 1) * 0.3);
 
+  const purchasedStats = playerCharacter.purchasedStats || {
+    hpRegen: 0,
+    mpRegen: 0,
+    attackSpeed: 0,
+    moveSpeed: 0,
+  };
+
   return {
     totalHealth: baseHealth + equipmentBonuses.health + skillHealthBonus,
     totalMana: baseMana + equipmentBonuses.mana + skillManaBonus,
     totalPower: basePower + equipmentBonuses.power + skillPowerBonus,
     totalArmor: baseArmor + equipmentBonuses.armor + skillArmorBonus,
-    totalMoveSpeed: baseMoveSpeed + equipmentBonuses.moveSpeed,
-    totalAttackSpeed: baseAttackSpeed + equipmentBonuses.attackSpeed,
-    totalHealthRegen: baseHealthRegen + equipmentBonuses.healthRegen,
-    totalManaRegen: baseManaRegen + equipmentBonuses.manaRegen,
+    totalMoveSpeed: baseMoveSpeed + equipmentBonuses.moveSpeed + purchasedStats.moveSpeed,
+    totalAttackSpeed: baseAttackSpeed + equipmentBonuses.attackSpeed + purchasedStats.attackSpeed,
+    totalHealthRegen: baseHealthRegen + equipmentBonuses.healthRegen + purchasedStats.hpRegen,
+    totalManaRegen: baseManaRegen + equipmentBonuses.manaRegen + purchasedStats.mpRegen,
     equipmentBonuses: {
       health: equipmentBonuses.health,
       mana: equipmentBonuses.mana,
