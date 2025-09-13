@@ -122,9 +122,6 @@ export class ItemInstanceManager {
         if (itemInstance.bonusStats.magic) {
           combined.magic = (combined.magic || 0) + itemInstance.bonusStats.magic;
         }
-        if (itemInstance.bonusStats.strength) {
-          combined.strength = (combined.strength || 0) + itemInstance.bonusStats.strength;
-        }
       }
 
       return combined;

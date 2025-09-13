@@ -27,6 +27,7 @@ const initialPlayerState: PlayerCharacterState = {
     ItemInstanceManager.createItemInstance("twigBow"),
     ItemInstanceManager.createItemInstance("boneClub"),
     ItemInstanceManager.createItemInstance("boneCharm"),
+    ItemInstanceManager.createItemInstance("spellScrollLightHealing"),
     ItemInstanceManager.createItemInstance("skullCap"),
     ItemInstanceManager.createItemInstance("skeletalMedallion"),
     ItemInstanceManager.createItemInstance("boneShield"),

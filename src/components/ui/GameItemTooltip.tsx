@@ -1,6 +1,3 @@
-// src/components/ui/GameItemTooltip.tsx
-// Replace the existing GameItemTooltip.tsx with this updated version
-
 import React, { useState, useEffect } from "react";
 import { useEventBus } from "../../hooks/useEventBus";
 import { ItemCategory } from "../../types";

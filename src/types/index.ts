@@ -47,6 +47,7 @@ export enum ItemCategory {
   PRODUCT = "product",
   CURRENCY = "currency",
   QUEST = "quest",
+  SPELL_SCROLL = "spell_scroll",
 }
 
 // Sets
@@ -134,6 +135,10 @@ export interface ItemData {
   secondaryDamagePeanlty?: number;
   secondaryAttackType?: PlayerAttackType; // Melee, Magic, or Ranged. This attack with scale with that Skill
 
+  // Spells
+  teachesSpell?: string; // what spell it teaches
+  consumable?: boolean;
+
   // Stats
   power?: number;
   armor?: number;
@@ -149,6 +154,25 @@ export interface ItemData {
 
   // Physical properties
   weight: number;
+}
+
+// ======================================================
+// Spells
+// ======================================================
+
+export interface SpellData {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  cooldown: number;
+  damage?: number;
+  healing?: number;
+  manaCost?: number;
+  range?: number;
+  areaSize?: number;
+  animationType?: string;
+  animationConfig?: any;
 }
 
 // ======================================================
@@ -258,6 +282,7 @@ export enum ItemType {
   TRINKET = "trinket",
   FOOD = "food",
   PRODUCT = "product",
+  SPELL_SCROLL = "spell-scroll",
 }
 
 export interface PlayerCharacterEquipment {

@@ -1,3 +1,4 @@
+// src/services/ItemDictionaryService.ts
 import { ItemData, ItemCategory, ItemSets, ItemType, PlayerAttackType } from "@/types";
 
 const ITEM_DATA: Record<string, ItemData> = {
@@ -149,7 +150,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     sellValue: 10,
   },
 
-  // shields + offhands
+  // Shields + Offhands
   boneShield: {
     id: "boneShield",
     name: "Bone Shield",
@@ -167,7 +168,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     sellValue: 10,
   },
 
-  // Chests
+  // Armor
   skeletalArmor: {
     id: "skeletalArmor",
     name: "Skeletal Armor",
@@ -288,6 +289,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     stackable: true,
   },
 
+  // CURRENCY
   goldCoins: {
     id: "goldCoins",
     name: "Gold Coins",
@@ -298,6 +300,21 @@ const ITEM_DATA: Record<string, ItemData> = {
     description: "Shiny gold coins used as currency throughout the realm",
     texture: "gold-coins",
     sellValue: 1,
+  },
+
+  // SPELL SCROLL
+  spellScrollLightHealing: {
+    id: "spellScrollLightHealing",
+    name: "Spell Scroll: Light Healing",
+    category: ItemCategory.SPELL_SCROLL,
+    type: ItemType.SPELL_SCROLL,
+    weight: 1,
+    stackable: false,
+    description: "A magical scroll that teaches the Light Healing spell. Right-click to learn.",
+    texture: "spell-scroll",
+    teachesSpell: "lightHealing", // Links to the spell ID
+    consumable: true,
+    sellValue: 50,
   },
 };
 
@@ -324,6 +341,10 @@ class ItemDictionaryService {
 
   getItem(itemId: string): ItemData | null {
     return this.itemDatabase[itemId] || null;
+  }
+
+  getItemName(itemId: string): string {
+    return this.itemDatabase[itemId]?.name || "Unknown Item";
   }
 
   getItemType(itemId: string): string {
@@ -360,7 +381,7 @@ class ItemDictionaryService {
     return Object.values(this.itemDatabase).filter((item) => item.set === setType);
   }
 
-  // Helper method to get folder path for item icons
+  // Helper method to get folder path for item icons - UPDATED
   getItemFolder(item: ItemData): string {
     const categoryToFolderMap: Record<string, string> = {
       weapon_melee: "melee-weapons",
@@ -377,9 +398,10 @@ class ItemDictionaryService {
       material: "valuables",
       consumable: "valuables",
       quest: "valuables",
+      spell_scroll: "general", // ADD THIS LINE for spell scrolls
     };
 
-    return categoryToFolderMap[item.category!];
+    return categoryToFolderMap[item.category!] || "valuables";
   }
 }
 

@@ -1,4 +1,3 @@
-// src/stores/types/gameTypes.ts
 import {
   PlayerCharacterEquipment,
   ItemInstance,

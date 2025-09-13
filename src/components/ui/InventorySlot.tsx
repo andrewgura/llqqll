@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ItemData, ItemInstance } from "../../types";
+import { ItemData, ItemInstance, ItemType } from "../../types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
 import ItemTooltip from "./tooltips/ItemTooltip";
+import SpellScrollTooltip from "./tooltips/SpellScrollTooltip";
 
 interface InventorySlotProps {
   id: string;
@@ -50,27 +51,6 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
     if (onClick) {
       onClick(e, id, itemInstance?.instanceId);
     }
-  };
-
-  const getCategoryFolder = (category?: string): string => {
-    const categoryToFolderMap: Record<string, string> = {
-      weapon_melee: "melee-weapons",
-      weapon_magic: "magic",
-      weapon_ranged: "ranged",
-      armor: "chest",
-      shield: "offhand",
-      helmet: "helmet",
-      amulet: "necklace",
-      trinket: "trinket",
-      food: "food",
-      product: "products",
-      currency: "valuables",
-      material: "valuables",
-      consumable: "valuables",
-      quest: "valuables",
-    };
-
-    return category ? categoryToFolderMap[category] || "valuables" : "valuables";
   };
 
   // Get item data if slot has an item
@@ -193,6 +173,18 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
     setTooltipVisible(false);
   };
 
+  const renderTooltip = () => {
+    if (!tooltipVisible || !itemInstance) return null;
+
+    // Show spell scroll tooltip for spell scrolls
+    if (itemData?.type === ItemType.SPELL_SCROLL) {
+      return <SpellScrollTooltip itemInstance={itemInstance} visible={tooltipVisible} />;
+    }
+
+    // Show regular item tooltip for other items
+    return <ItemTooltip itemInstance={itemInstance} visible={tooltipVisible} />;
+  };
+
   return (
     <>
       <div
@@ -251,7 +243,7 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
       </div>
 
       {/* Render the tooltip component */}
-      <ItemTooltip itemInstance={itemInstance} visible={tooltipVisible} />
+      {renderTooltip()}
     </>
   );
 };
