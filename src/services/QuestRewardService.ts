@@ -1,38 +1,16 @@
-import { questService, QuestDefinition } from "./QuestService";
-import { ItemInstance } from "../types";
+import { questService } from "./QuestService";
+import {
+  GameStoreActions,
+  ItemInstance,
+  QuestDefinition,
+  RewardDistributionResult,
+  RewardToGive,
+} from "../types";
 import { eventBus } from "../utils/EventBus";
 import { PhaserSceneManager } from "./PhaserSceneManager";
 import { GameScene } from "../scenes/GameScene";
 import { ItemDictionary } from "./ItemDictionaryService";
 import { v4 as uuidv4 } from "uuid";
-
-export interface RewardDistributionResult {
-  success: boolean;
-  itemsReceived: string[];
-  itemsDropped: string[];
-  goldReceived: number;
-  questPointsReceived: number;
-  experienceReceived: number;
-  message: string;
-}
-
-interface RewardToGive {
-  type: "gold" | "item" | "questPoints" | "experience";
-  name: string;
-  amount: number;
-  shouldGive: boolean;
-}
-
-interface GameStoreActions {
-  updatePlayerGold: (amount: number) => void;
-  updatePlayerQuestPoints: (amount: number) => void;
-  addItemInstanceToInventory: (itemInstance: ItemInstance) => boolean;
-  awardExperience: (amount: number, x?: number, y?: number) => void;
-  getPlayerCharacter: () => {
-    gold: number;
-    questPoints: number;
-  };
-}
 
 class QuestRewardService {
   /**

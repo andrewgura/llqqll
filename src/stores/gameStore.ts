@@ -1,7 +1,5 @@
-// src/stores/gameStore.ts
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { GameState } from "./types/gameTypes";
 import { EquipmentStore, createEquipmentStore } from "./components/equipmentStore";
 import { InventoryStore, createInventoryStore } from "./components/inventoryStore";
 import { PlayerStore, createPlayerStore } from "./components/playerStore";
@@ -11,6 +9,7 @@ import { SystemStore, createSystemStore } from "./components/systemStore";
 import { UIStore, createUIStore } from "./components/uiStore";
 import { createOutfitStore, OutfitStore } from "./components/outfitStore";
 import { createCreatureStore, CreatureStore } from "./components/creatureStore";
+import { GameState } from "@/types";
 
 // Combined store type that includes all stores
 export type GameStore = GameState &

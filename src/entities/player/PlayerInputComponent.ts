@@ -1,4 +1,3 @@
-// src/entities/player/PlayerInputComponent.ts
 import { Component } from "../Component";
 import { Character } from "../Character";
 import { MovementComponent } from "./MovementComponent";

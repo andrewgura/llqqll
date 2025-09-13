@@ -1,12 +1,10 @@
-// src/stores/components/questStore.ts
 import { StateCreator } from "zustand";
-import { GameState, QuestState } from "../types/gameTypes";
-import { Quest, QuestCompletionHistory } from "../../types";
 import { questService } from "../../services/QuestService";
 import { questRewardService } from "../../services/QuestRewardService";
 import { eventBus } from "../../utils/EventBus";
 import { PlayerStore } from "./playerStore";
 import { InventoryStore } from "./inventoryStore";
+import { GameState, QuestState } from "@/types";
 
 const initialQuestState: QuestState = {
   active: [],

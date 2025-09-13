@@ -1,6 +1,5 @@
 import { Entity } from "./Entity";
 import { eventBus } from "@/utils/EventBus";
-import { useGameStore } from "@/stores/gameStore";
 
 export abstract class Character extends Entity {
   health: number = 100;

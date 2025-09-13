@@ -1,6 +1,4 @@
-// src/stores/stores/skillsStore.ts
 import { StateCreator } from "zustand";
-import { GameState } from "../types/gameTypes";
 import { eventBus } from "../../utils/EventBus";
 import {
   SKILL_PROGRESSION,
@@ -8,9 +6,9 @@ import {
   calculateLevelFromExperience,
 } from "../../utils/SkillProgressionFormula";
 import { calculateEquipmentBonuses, calculateTotalStats } from "./equipmentStore";
+import { GameState } from "@/types/game/state";
 
 export interface SkillsStore {
-  // Skill methods
   updateSkill: (skillId: string, newExperience: number) => void;
 }
 
@@ -18,7 +16,6 @@ export const createSkillsStore: StateCreator<GameState & SkillsStore, [], [], Sk
   set,
   get
 ) => ({
-  // EXACT COPY from original gameStore
   updateSkill: (skillId, newExperience) => {
     set((state) => {
       const skills = { ...state.playerCharacter.skills };

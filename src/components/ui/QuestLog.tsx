@@ -1,38 +1,9 @@
-// src/components/ui/QuestLog.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { useGameStore } from "../../stores/gameStore";
-import { Quest } from "../../types";
+import { Quest, QuestTab } from "../../types";
 import { questService } from "../../services/QuestService";
 import { ItemDictionary } from "../../services/ItemDictionaryService";
-
-enum QuestTab {
-  MAIN = "main",
-  SIDE = "side",
-  RIDDLES = "riddles",
-}
-
-interface MainQuestStep {
-  page: number;
-  step: number;
-  task: string;
-  img: string;
-}
-
-interface SideQuest {
-  name: string;
-  type: string;
-  amount: number;
-  reward: number;
-  description: string;
-  isRepeatable: boolean;
-}
-
-interface Riddle {
-  name: string;
-  img: string;
-  reward: number;
-}
 
 const QuestLog: React.FC = () => {
   const [visible, setVisible] = useState<boolean>(false);

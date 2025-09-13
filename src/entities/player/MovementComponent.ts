@@ -24,9 +24,6 @@ export class MovementComponent extends Component {
     eventBus.on("player.moveSpeed.updated", this.handleMoveSpeedUpdate.bind(this));
   }
 
-  /**
-   * SIMPLIFIED: Update move speed from GameStore
-   */
   private updateMoveSpeedFromStore(): void {
     try {
       const gameState = useGameStore.getState();

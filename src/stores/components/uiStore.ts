@@ -1,7 +1,5 @@
-// src/stores/stores/uiStore.ts
 import { StateCreator } from "zustand";
-import { GameState } from "../types/gameTypes";
-import { SetCollectionData } from "../../types";
+import { GameState, SetCollectionData } from "../../types";
 
 export interface UIStore {
   // UI state

@@ -1,25 +1,6 @@
-// src/stores/components/outfitStore.ts
 import { StateCreator } from "zustand";
-import { GameState } from "../types/gameTypes";
 import { eventBus } from "../../utils/EventBus";
-
-export interface OutfitData {
-  id: string;
-  name: string;
-  sprite: string; // Sprite key for Phaser
-  description?: string;
-  isUnlocked: boolean;
-  isDefault?: boolean;
-  unlockSource?: string; // "default", "skeletal_set", "quest_reward", etc.
-  previewImage?: string; // Path to preview image
-}
-
-export interface OutfitState {
-  currentOutfit: string; // Current outfit ID
-  currentTint: number; // Current tint color as hex number
-  availableOutfits: Record<string, OutfitData>; // All outfit definitions
-  unlockedOutfitIds: string[]; // Array of unlocked outfit IDs
-}
+import { GameState, OutfitData, OutfitState } from "@/types";
 
 export interface OutfitStore {
   // State

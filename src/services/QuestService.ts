@@ -1,22 +1,5 @@
 import { eventBus } from "../utils/EventBus";
-import { Quest, QuestObjective } from "../types";
-
-export interface QuestDefinition {
-  id: string;
-  title: string;
-  description: string;
-  type: "kill" | "collect" | "deliver";
-  isRepeatable?: boolean; // default false
-  objectives: Omit<QuestObjective, "completed">[];
-  rewards: Rewards[];
-}
-
-interface Rewards {
-  name: string;
-  amount?: number;
-  isFirstTimeOnly?: boolean; // From first completion only
-  isRepeatableReward?: boolean; // Not given on first completion; given on all repeat completion if quest is repeatable
-}
+import { Quest, QuestObjective, QuestDefinition, QuestReward } from "../types";
 
 const QUEST_DEFINITIONS: Record<string, QuestDefinition> = {
   SkeletonKiller: {

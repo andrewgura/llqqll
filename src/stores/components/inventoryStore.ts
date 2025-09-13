@@ -1,6 +1,5 @@
 import { StateCreator } from "zustand";
-import { GameState } from "../types/gameTypes";
-import { ItemInstance } from "../../types";
+import { GameState, ItemInstance } from "../../types";
 import { ItemDictionary } from "../../services/ItemDictionaryService";
 import { eventBus } from "../../utils/EventBus";
 

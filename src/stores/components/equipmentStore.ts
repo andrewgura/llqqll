@@ -1,6 +1,11 @@
 import { StateCreator } from "zustand";
-import { GameState, CalculatedStats } from "../types/gameTypes";
-import { PlayerCharacterEquipment, ItemInstance, PlayerCharacterState } from "../../types";
+import {
+  PlayerCharacterEquipment,
+  ItemInstance,
+  PlayerCharacterState,
+  CalculatedStats,
+  GameState,
+} from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 import { eventBus } from "../../utils/EventBus";
 

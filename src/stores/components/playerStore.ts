@@ -1,6 +1,12 @@
 import { StateCreator } from "zustand";
-import { GameState, PlayerCharacterState, CalculatedStats } from "../types/gameTypes";
-import { Classes, PlayerCharacterEquipment, PurchasedStats } from "../../types";
+import {
+  CalculatedStats,
+  Classes,
+  GameState,
+  PlayerCharacterEquipment,
+  PlayerCharacterState,
+  PurchasedStats,
+} from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 import { eventBus } from "../../utils/EventBus";
 import { experienceSystem } from "../../services/ExperienceSystem";

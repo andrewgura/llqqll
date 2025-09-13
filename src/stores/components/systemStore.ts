@@ -1,6 +1,5 @@
-// src/stores/stores/systemStore.ts
+import { GameState } from "@/types";
 import { StateCreator } from "zustand";
-import { GameState } from "../types/gameTypes";
 
 export interface SystemStore {
   // System state
