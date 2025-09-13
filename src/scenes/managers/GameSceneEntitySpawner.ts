@@ -102,9 +102,6 @@ export class GameSceneEntitySpawner {
       const npc = new NPC(this.scene, x, y, npcData);
       this.scene.npcs.add(npc);
 
-      // Initialize with a default animation
-      npc.playAnimation("down", false);
-
       // Return the created NPC
       return npc;
     } catch (error) {

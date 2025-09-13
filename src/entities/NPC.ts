@@ -14,8 +14,8 @@ export class NPC extends Character {
   isMerchant: boolean = false;
   isStatSeller: boolean = false;
 
-  // UI elements
   private merchantIcon: Phaser.GameObjects.Text | null = null;
+  private icons: Phaser.GameObjects.Text[] = [];
   private highlightCircle: Phaser.GameObjects.Arc | null = null;
   private isHighlighted: boolean = false;
 
@@ -42,10 +42,8 @@ export class NPC extends Character {
       // Set up interaction zone
       this.createInteractionZone();
 
-      // Create visual elements
-      if (this.isMerchant) {
-        this.createMerchantIcon();
-      }
+      // CHANGED: Create all icons instead of just merchant
+      this.createAllIcons(npcData);
 
       // Create highlight circle (initially hidden)
       this.createHighlightCircle();
@@ -76,9 +74,6 @@ export class NPC extends Character {
       // Add hover event handlers
       this.on("pointerover", this.handlePointerOver.bind(this));
       this.on("pointerout", this.handlePointerOut.bind(this));
-
-      // Set default animation
-      this.playAnimation("down", false);
 
       // Emit NPC created event
       eventBus.emit("npc.created", {
@@ -137,34 +132,59 @@ export class NPC extends Character {
     }
   }
 
-  private createMerchantIcon(): void {
+  // CHANGED: Replaced createMerchantIcon with createAllIcons
+  private createAllIcons(npcData: NPCData): void {
     try {
-      // Use a coin symbol as merchant icon with improved styling
-      this.merchantIcon = this.scene.add.text(this.x, this.y - 65, "💰", {
-        fontSize: "20px", // Larger size
-        shadow: {
-          offsetX: 1,
-          offsetY: 1,
-          color: "#000",
-          blur: 2,
-          fill: true,
-        },
-      });
+      const iconTypes = [];
 
-      this.merchantIcon.setOrigin(0.5);
-      this.merchantIcon.setDepth(10);
+      if (npcData.isMerchant) iconTypes.push({ emoji: "💰", type: "merchant" });
+      if (npcData.isMainQuestGiver) iconTypes.push({ emoji: "⭐", type: "mainQuest" });
+      if (npcData.isQuestGiver) iconTypes.push({ emoji: "❗", type: "sideQuest" });
+      if (npcData.isWarriorTrainer) iconTypes.push({ emoji: "⚔️", type: "warrior" });
+      if (npcData.isMageTrainer) iconTypes.push({ emoji: "🔮", type: "mage" });
+      if (npcData.isArcherTrainer) iconTypes.push({ emoji: "🏹", type: "archer" });
+      if (npcData.isStatSeller) iconTypes.push({ emoji: "📈", type: "stats" });
 
-      // More pronounced floating animation
-      this.scene.tweens.add({
-        targets: this.merchantIcon,
-        y: this.y - 70,
-        duration: 1500,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
+      if (iconTypes.length === 0) return;
+
+      const iconSpacing = 25;
+      const startX = this.x - ((iconTypes.length - 1) * iconSpacing) / 2;
+
+      iconTypes.forEach((iconInfo, index) => {
+        const iconX = startX + index * iconSpacing;
+
+        const icon = this.scene.add.text(iconX, this.y - 65, iconInfo.emoji, {
+          fontSize: "20px",
+          shadow: {
+            offsetX: 1,
+            offsetY: 1,
+            color: "#000",
+            blur: 2,
+            fill: true,
+          },
+        });
+
+        icon.setOrigin(0.5);
+        icon.setDepth(10);
+
+        this.scene.tweens.add({
+          targets: icon,
+          y: this.y - 70,
+          duration: 1500 + index * 100,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+
+        this.icons.push(icon);
+
+        // Keep the first icon as merchantIcon for backward compatibility
+        if (index === 0) {
+          this.merchantIcon = icon;
+        }
       });
     } catch (error) {
-      console.error(`Error creating merchant icon for NPC ${this.id}:`, error);
+      console.error(`Error creating icons for NPC ${this.id}:`, error);
       eventBus.emit("error.npc.merchantIcon", {
         id: this.id,
         error,
@@ -188,7 +208,7 @@ export class NPC extends Character {
       this.highlightCircle.setVisible(false);
     } catch (error) {
       console.error(`Error creating highlight circle for NPC ${this.id}:`, error);
-      eventBus.emit("error.npc.highlight", {
+      eventBus.emit("error.npc.highlightCircle", {
         id: this.id,
         error,
       });
@@ -259,6 +279,7 @@ export class NPC extends Character {
     }
   }
 
+  // PRESERVED: Original click handling logic
   private handleClick(): void {
     try {
       const scene = this.scene as any;
@@ -281,6 +302,7 @@ export class NPC extends Character {
     }
   }
 
+  // PRESERVED: Original interaction methods
   openStatSeller(): void {
     try {
       eventBus.emit("stat-seller.open", {
@@ -309,36 +331,6 @@ export class NPC extends Character {
     }
   }
 
-  playAnimation(direction: string, isMoving: boolean = false): void {
-    try {
-      // Update facing direction if specified
-      if (direction) {
-        this.facing = direction;
-      }
-
-      // Construct animation key (always use idle since NPCs are stationary)
-      const animKey = `idle-${this.facing}`;
-
-      // Only play animation if it's not already playing
-      if (!this.anims.isPlaying || this.anims.currentAnim?.key !== animKey) {
-        this.anims.play(animKey, true);
-
-        // Emit animation event
-        eventBus.emit("npc.animation", {
-          id: this.id,
-          direction: this.facing,
-          isMoving: isMoving,
-        });
-      }
-    } catch (error) {
-      console.error(`Error playing animation for NPC ${this.id}:`, error);
-      eventBus.emit("error.npc.animation", {
-        id: this.id,
-        error,
-      });
-    }
-  }
-
   openQuest(): void {
     try {
       // Check if this NPC is a quest giver
@@ -352,10 +344,29 @@ export class NPC extends Character {
           npcName: this.npcName,
           availableQuests: questIds,
         });
+      } else {
+        // No quests available, show regular dialog
+        eventBus.emit("npc.dialog.started", {
+          npcId: this.id,
+          npcName: this.npcName,
+          dialog: this.dialogData,
+        });
       }
 
       // Emit interaction event
       eventBus.emit("npc.interacted", {
+        id: this.id,
+        name: this.npcName,
+      });
+    } catch (error) {
+      console.error(`Error opening quest for NPC ${this.id}:`, error);
+    }
+  }
+
+  interact(): void {
+    try {
+      // Emit interaction event with NPC data
+      eventBus.emit("npc.interact", {
         id: this.id,
         name: this.npcName,
       });
@@ -379,9 +390,13 @@ export class NPC extends Character {
         (this as any).interactionZone.y = this.y;
       }
 
-      // Update merchant icon position (x only since y is animated)
-      if (this.merchantIcon) {
-        this.merchantIcon.setX(this.x);
+      // icons
+      if (this.icons.length > 0) {
+        const iconSpacing = 25;
+        const startX = this.x - ((this.icons.length - 1) * iconSpacing) / 2;
+        this.icons.forEach((icon, index) => {
+          icon.setX(startX + index * iconSpacing);
+        });
       }
 
       // Update highlight circle position
@@ -416,11 +431,13 @@ export class NPC extends Character {
         (this as any).interactionZone.destroy();
       }
 
-      // Destroy merchant icon
-      if (this.merchantIcon) {
-        this.merchantIcon.destroy();
-        this.merchantIcon = null;
-      }
+      // Destroy icons
+      this.icons.forEach((icon) => {
+        if (icon && icon !== this.merchantIcon) {
+          icon.destroy();
+        }
+      });
+      this.icons = [];
 
       // Destroy highlight circle
       if (this.highlightCircle) {
