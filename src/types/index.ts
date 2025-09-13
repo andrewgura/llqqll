@@ -33,3 +33,6 @@ export * from "./ui";
 
 // Game state types
 export * from "./game/state";
+
+// NPC
+export * from "./npc";

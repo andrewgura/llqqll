@@ -1,11 +1,9 @@
-// src/scenes/managers/GameSceneEntitySpawner.ts
 import { Item } from "@/entities/Item";
 import { Monster } from "@/entities/Monster";
-import { NPC, NPCData } from "@/entities/NPC";
+import { NPC } from "@/entities/NPC";
 import { MapService } from "@/services/MapService";
-import { eventBus } from "@/utils/EventBus";
 import { useGameStore } from "@/stores/gameStore";
-import { ItemBonusStats, ItemCategory, ItemData } from "@/types";
+import { ItemBonusStats, ItemCategory, ItemData, NPCData } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { NPCService } from "@/services/NPCService";
 import { ItemDictionary } from "@/services/ItemDictionaryService";

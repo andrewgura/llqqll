@@ -1,18 +1,8 @@
+import { NPCService } from "@/services/NPCService";
+import { ShopItem, NPCData } from "@/types";
 import { Character } from "./Character";
 import { HealthComponent } from "./HealthComponent";
 import { eventBus } from "@/utils/EventBus";
-import { ShopItem, NPCService } from "@/services/NPCService";
-
-export interface NPCData {
-  id: string;
-  name: string;
-  texture: string;
-  dialog?: string[];
-  interactionRadius?: number;
-  isMerchant?: boolean;
-  shopItems?: ShopItem[];
-  isStatSeller?: boolean;
-}
 
 export class NPC extends Character {
   npcName: string = "";

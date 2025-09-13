@@ -52,10 +52,6 @@ export class GameSceneCollisionManager {
               this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
               500
             );
-
-            if (isInteractKeyDown) {
-              (npc as NPC).interact();
-            }
           }
         );
       }
