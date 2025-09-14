@@ -4,6 +4,7 @@ import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { useAbilitySystem } from "../../hooks/useAbilitySystem";
 import { AbilityDictionary } from "../../services/AbilityDictionaryService";
+import { SpellDictionary } from "../../services/SpellDictionaryService"; // ADDED
 
 interface ActionSlotProps {
   index: number;
@@ -172,8 +173,32 @@ const ActionBar: React.FC = () => {
 
       if (!abilityId) return;
 
-      // Get the ability data
-      const ability = AbilityDictionary.getAbility(abilityId);
+      // MINIMAL CHANGE: Check for ability first, then spell
+      let ability = AbilityDictionary.getAbility(abilityId);
+
+      // If not found as ability, try as spell
+      if (!ability) {
+        const spellData = SpellDictionary.getSpell(abilityId);
+        if (spellData) {
+          // Convert spell to ability format
+          ability = {
+            id: spellData.id,
+            name: spellData.name,
+            description: spellData.description,
+            icon: spellData.icon,
+            cooldown: spellData.cooldown,
+            damage: spellData.damage || 0,
+            weaponType: "spell",
+            requiredWeapon: "any",
+            skillId: "spells",
+            range: spellData.range,
+            areaSize: spellData.areaSize,
+            animationType: spellData.animationType,
+            animationConfig: spellData.animationConfig,
+          };
+        }
+      }
+
       if (!ability) return;
 
       // Check if this ability is already on the action bar
@@ -212,68 +237,16 @@ const ActionBar: React.FC = () => {
         });
 
         // If it was in another slot, clear that slot
-        if (existingSlotIndex !== -1) {
-          emitEvent("ability.removeFromSlot", {
-            slotIndex: existingSlotIndex + 1,
-          });
-        }
+        emitEvent("ability.clearSlot", { slotIndex: existingSlotIndex + 1 });
 
         emitEvent("ui.message.show", `Moved ${ability.name} to slot ${index + 1}`);
-      }
-      // Case 2: The ability is already on the bar, and we're moving to an occupied slot (swap)
-      else if (existingSlotIndex !== -1 && targetSlotAbility) {
-        // Get target slot's ability
-        const targetAbility = AbilityDictionary.getAbility(targetSlotAbility);
-        if (!targetAbility) return;
-
-        // Swap abilities
+      } else {
+        // Either adding to empty slot or overwriting existing
         const newSlotAbilities = { ...slotAbilities };
         const newSlotIcons = { ...slotIcons };
-
-        newSlotAbilities[existingSlotIndex] = targetSlotAbility;
-        newSlotIcons[existingSlotIndex] = targetAbility.icon;
 
         newSlotAbilities[index] = abilityId;
         newSlotIcons[index] = ability.icon;
-
-        setSlotAbilities(newSlotAbilities);
-        setSlotIcons(newSlotIcons);
-
-        // Update ability system for both slots
-        emitEvent("ability.setForSlot", {
-          slotIndex: index + 1,
-          abilityId: abilityId,
-          ability: ability,
-          iconPath: ability.icon,
-        });
-
-        emitEvent("ability.setForSlot", {
-          slotIndex: existingSlotIndex + 1,
-          abilityId: targetSlotAbility,
-          ability: targetAbility,
-          iconPath: targetAbility.icon,
-        });
-
-        emitEvent(
-          "ui.message.show",
-          `Swapped abilities between slots ${existingSlotIndex + 1} and ${index + 1}`
-        );
-      }
-      // Case 3: The ability is not on the bar yet
-      else if (existingSlotIndex === -1) {
-        const newSlotAbilities = { ...slotAbilities };
-        const newSlotIcons = { ...slotIcons };
-
-        // If target slot has an ability
-        if (targetSlotAbility) {
-          // We just overwrite it since the ability isn't elsewhere on the bar
-          newSlotAbilities[index] = abilityId;
-          newSlotIcons[index] = ability.icon;
-        } else {
-          // Empty slot, just add it
-          newSlotAbilities[index] = abilityId;
-          newSlotIcons[index] = ability.icon;
-        }
 
         setSlotAbilities(newSlotAbilities);
         setSlotIcons(newSlotIcons);
@@ -288,6 +261,9 @@ const ActionBar: React.FC = () => {
 
         emitEvent("ui.message.show", `Assigned ${ability.name} to slot ${index + 1}`);
       }
+
+      // Emit event for ability interface to update visual state
+      emitEvent("ability.activated", { slotIndex: index + 1, abilityId });
     } catch (error) {
       console.error("Error handling ability drop:", error);
       emitEvent("ui.error.show", "Failed to assign ability");

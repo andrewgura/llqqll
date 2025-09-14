@@ -36,3 +36,6 @@ export * from "./game/state";
 
 // NPC
 export * from "./npc";
+
+// Spells
+export * from "./spells";

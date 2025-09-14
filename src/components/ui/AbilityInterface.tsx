@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-import { Ability } from "../../types";
+import { Ability, SpellCategory, SpellData } from "../../types";
 import { AbilityDictionary } from "../../services/AbilityDictionaryService";
 import { ItemDictionary } from "../../services/ItemDictionaryService";
+import { SpellDictionary } from "../../services/SpellDictionaryService";
 
 interface AbilitySlotProps {
   ability: Ability;
@@ -30,6 +31,9 @@ const AbilitySlot: React.FC<AbilitySlotProps> = ({
     setShowTooltip(false);
   };
 
+  // Check if this is a spell (has healing property) for tooltip display
+  const isSpell = (ability as any).healing !== undefined || (ability as any).isSpell;
+
   return (
     <div
       className={`ability-slot ${isOnActionBar ? "on-action-bar" : ""}`}
@@ -54,7 +58,10 @@ const AbilitySlot: React.FC<AbilitySlotProps> = ({
           <div className="ability-tooltip-title">{ability.name}</div>
           <div className="ability-tooltip-desc">{ability.description}</div>
           <div className="ability-tooltip-stats">
-            Damage: {ability.damage} | Cooldown: {ability.cooldown}s
+            {isSpell && (ability as any).healing && `Healing: ${(ability as any).healing} | `}
+            {ability.damage && `Damage: ${ability.damage} | `}
+            Cooldown: {ability.cooldown}s
+            {(ability as any).manaCost && ` | Mana: ${(ability as any).manaCost}`}
           </div>
         </div>
       )}
@@ -77,7 +84,7 @@ const AbilityCategory: React.FC<AbilityCategoryProps> = ({
 }) => {
   return (
     <div className="ability-category">
-      <div className="category-header">{categoryName} Abilities</div>
+      <div className="category-header">{categoryName}</div>
       <div className="ability-slots">
         {abilities.map((ability, index) => (
           <AbilitySlot
@@ -94,7 +101,8 @@ const AbilityCategory: React.FC<AbilityCategoryProps> = ({
 };
 
 const AbilityInterface: React.FC = () => {
-  const { playerCharacter } = useGameStore();
+  const { playerCharacter, getLearnedSpellsByCategory, isSpellLearned } = useGameStore();
+
   const [visible, setVisible] = useState(false);
   const [draggedAbility, setDraggedAbility] = useState<Ability | null>(null);
   const [actionBarAbilities, setActionBarAbilities] = useState<Record<number, string>>({});
@@ -151,7 +159,10 @@ const AbilityInterface: React.FC = () => {
     if (!visible) {
       updateAbilitiesForEquipment(playerCharacter.equipment);
       updateActionBarAbilities();
-      emitEvent("ui.message.show", "Drag abilities to action bar slots. Press O to close.");
+      emitEvent(
+        "ui.message.show",
+        "Drag abilities and spells to action bar slots. Press O to close."
+      );
     }
 
     emitEvent("abilities.visibility.changed", !visible);
@@ -219,6 +230,54 @@ const AbilityInterface: React.FC = () => {
         console.error("Failed to set drag image:", error);
       }
     }, 10);
+  };
+
+  // Convert SpellData to Ability format for display
+  const convertSpellToAbility = (spell: SpellData): Ability => {
+    return {
+      id: spell.id,
+      name: spell.name,
+      description: spell.description,
+      icon: spell.icon,
+      cooldown: spell.cooldown,
+      damage: spell.damage || 0,
+      weaponType: "spell", // Mark as spell
+      requiredWeapon: "any",
+      skillId: "spells",
+      range: spell.range,
+      areaSize: spell.areaSize,
+      animationType: spell.animationType,
+      animationConfig: spell.animationConfig,
+      // Add spell-specific properties
+      ...(spell as any), // Include original spell data
+      isSpell: true, // Mark as spell for identification
+    };
+  };
+
+  // Get learned spells organized by category
+  const getLearnedSpells = (): Record<string, Ability[]> => {
+    const spellCategories: Record<string, Ability[]> = {};
+
+    // Get all spell categories and their display names
+    const categories = [
+      { id: SpellCategory.GENERAL, name: "General Spells" },
+      { id: SpellCategory.WARRIOR, name: "Warrior Spells" },
+      { id: SpellCategory.MAGE, name: "Mage Spells" },
+      { id: SpellCategory.RANGER, name: "Ranger Spells" },
+    ];
+
+    categories.forEach(({ id, name }) => {
+      const learnedSpellIds = getLearnedSpellsByCategory(id);
+      const spells = learnedSpellIds
+        .map((spellId) => SpellDictionary.getSpell(spellId))
+        .filter(Boolean) as SpellData[];
+
+      if (spells.length > 0) {
+        spellCategories[name] = spells.map(convertSpellToAbility);
+      }
+    });
+
+    return spellCategories;
   };
 
   // Get mock abilities for a weapon type
@@ -293,15 +352,22 @@ const AbilityInterface: React.FC = () => {
   const weaponType = getWeaponType();
   const weaponAbilities = getMockAbilities(weaponType);
   const bonusAbilities = getBonusAbilities();
+  const learnedSpells = getLearnedSpells();
+
+  // Check if we have any content to show
+  const hasWeaponAbilities = weaponType !== "none" && weaponAbilities.length > 0;
+  const hasBonusAbilities = Object.keys(bonusAbilities).length > 0;
+  const hasSpells = Object.keys(learnedSpells).length > 0;
+  const hasAnyContent = hasWeaponAbilities || hasBonusAbilities || hasSpells;
 
   return (
     <div className="abilities-interface-container">
-      <div className="abilities-header">Abilities</div>
+      <div className="abilities-header">Abilities & Spells</div>
       <div className="abilities-content">
         {/* Weapon Abilities */}
-        {weaponType !== "none" && weaponAbilities.length > 0 && (
+        {hasWeaponAbilities && (
           <AbilityCategory
-            categoryName={weaponType.charAt(0).toUpperCase() + weaponType.slice(1)}
+            categoryName={`${weaponType.charAt(0).toUpperCase() + weaponType.slice(1)} Abilities`}
             abilities={weaponAbilities}
             actionBarAbilities={actionBarAbilities}
             onDragStart={handleAbilityDragStart}
@@ -312,17 +378,29 @@ const AbilityInterface: React.FC = () => {
         {Object.entries(bonusAbilities).map(([itemName, abilities]) => (
           <AbilityCategory
             key={itemName}
-            categoryName={itemName}
+            categoryName={`${itemName} Abilities`}
             abilities={abilities}
             actionBarAbilities={actionBarAbilities}
             onDragStart={handleAbilityDragStart}
           />
         ))}
 
-        {/* No abilities message */}
-        {weaponType === "none" && Object.keys(bonusAbilities).length === 0 && (
+        {/* Spell Categories */}
+        {Object.entries(learnedSpells).map(([categoryName, spells]) => (
+          <AbilityCategory
+            key={categoryName}
+            categoryName={categoryName}
+            abilities={spells}
+            actionBarAbilities={actionBarAbilities}
+            onDragStart={handleAbilityDragStart}
+          />
+        ))}
+
+        {/* No abilities/spells message */}
+        {!hasAnyContent && (
           <div className="no-abilities-message">
-            No abilities available. Equip a weapon or items that grant abilities.
+            No abilities or spells available. Equip a weapon, items that grant abilities, or learn
+            some spells.
           </div>
         )}
       </div>
