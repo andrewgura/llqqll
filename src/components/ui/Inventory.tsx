@@ -346,7 +346,7 @@ const Inventory: React.FC = () => {
     };
   }, [draggedItem, cleanupAllDragValidation]);
 
-  // Handle right-click on item - MINIMAL CHANGES ONLY
+  // Handle right-click on item
   const handleItemRightClick = (e: React.MouseEvent, slotId: string, itemInstanceId?: string) => {
     e.preventDefault();
 
@@ -358,8 +358,12 @@ const Inventory: React.FC = () => {
     const itemData = ItemInstanceManager.getCombinedStats(itemInstance);
     if (!itemData) return;
 
-    // Handle spell scroll right-click to learn ability - MINIMAL IMPLEMENTATION
-    if (itemData.type === ItemType.SPELL_SCROLL && (itemData as any).teachesSpell) {
+    // Handle spell scroll right-click to learn ability - ONLY for inventory items
+    if (
+      slotId.startsWith("inv-") &&
+      itemData.type === ItemType.SPELL_SCROLL &&
+      (itemData as any).teachesSpell
+    ) {
       const abilityId = (itemData as any).teachesSpell;
 
       // Check if already learned
@@ -384,8 +388,8 @@ const Inventory: React.FC = () => {
       return;
     }
 
-    // Handle food consumption - SIMPLIFIED without mana
-    if (itemData.type === ItemType.FOOD) {
+    // Handle food consumption - ONLY for inventory items
+    if (slotId.startsWith("inv-") && itemData.type === ItemType.FOOD) {
       const gameStore = useGameStore.getState();
       const calculatedStats = gameStore.calculatedStats;
       const currentHealth = gameStore.playerCharacter.health;
@@ -424,7 +428,27 @@ const Inventory: React.FC = () => {
       return;
     }
 
-    // Handle equipment right-click (unequip) - EXISTING FUNCTIONALITY
+    // FIXED: Handle inventory item right-click (equip item)
+    if (slotId.startsWith("inv-")) {
+      // Determine which slot to equip to
+      let targetSlot = "";
+      if (itemData.type === ItemType.WEAPON) targetSlot = "weapon";
+      else if (itemData.type === ItemType.OFFHAND) targetSlot = "offhand";
+      else if (itemData.type === ItemType.HELMET) targetSlot = "helmet";
+      else if (itemData.type === ItemType.AMULET) targetSlot = "amulet";
+      else if (itemData.type === ItemType.TRINKET) targetSlot = "trinket";
+      else if (itemData.type === ItemType.ARMOR) targetSlot = "armor";
+
+      if (targetSlot) {
+        equipItem(itemInstanceId, targetSlot);
+      } else {
+        emitEvent("ui.message.show", `Don't know where to equip ${itemData.name}`);
+      }
+
+      return;
+    }
+
+    // Handle equipment slot right-click (unequip item)
     const currentEquipment = { ...playerCharacter.equipment };
     const equipmentSlot = slotId as keyof typeof currentEquipment;
 
@@ -432,7 +456,6 @@ const Inventory: React.FC = () => {
       const currentItem = currentEquipment[equipmentSlot as keyof typeof currentEquipment];
 
       if (!currentItem) {
-        setDraggedItem(null);
         return;
       }
 
