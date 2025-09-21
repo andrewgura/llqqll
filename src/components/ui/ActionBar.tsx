@@ -4,7 +4,7 @@ import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
 import { useAbilitySystem } from "../../hooks/useAbilitySystem";
 import { AbilityDictionary } from "../../services/AbilityDictionaryService";
-import { SpellDictionary } from "../../services/SpellDictionaryService"; // ADDED
+import { SpellDictionary } from "../../services/SpellDictionaryService";
 
 interface ActionSlotProps {
   index: number;
@@ -88,6 +88,7 @@ const ActionBar: React.FC = () => {
   const inputFocused = useGameStore((state) => state.inputFocused);
   const emitEvent = useEmitEvent();
 
+  // FIXED: Use correct method name
   const { activeAbilities, isAbilityOnCooldown, getCooldownRemaining, activateAbility } =
     useAbilitySystem();
 

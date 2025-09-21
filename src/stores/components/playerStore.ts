@@ -13,7 +13,7 @@ import { experienceSystem } from "../../services/ExperienceSystem";
 import { calculateEquipmentBonuses, calculateTotalStats } from "./equipmentStore";
 
 const initialPlayerState: PlayerCharacterState = {
-  health: 100,
+  health: 30,
   maxHealth: 100,
   lastAttackTime: 0,
   experience: 0,

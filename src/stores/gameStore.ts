@@ -9,7 +9,7 @@ import { SystemStore, createSystemStore } from "./components/systemStore";
 import { UIStore, createUIStore } from "./components/uiStore";
 import { createOutfitStore, OutfitStore } from "./components/outfitStore";
 import { createCreatureStore, CreatureStore } from "./components/creatureStore";
-import { createSpellStore, SpellStore } from "./components/spellStore";
+import { createAbilityStore, AbilityStore } from "./components/abilityStore"; // CHANGED: from spellStore to abilityStore
 import { GameState } from "@/types";
 
 // Combined store type that includes all stores
@@ -23,7 +23,7 @@ export type GameStore = GameState &
   SystemStore &
   OutfitStore &
   CreatureStore &
-  SpellStore;
+  AbilityStore; // CHANGED: from SpellStore to AbilityStore
 
 // Create the main game store by combining all stores
 export const useGameStore = create<GameStore>()(
@@ -37,6 +37,6 @@ export const useGameStore = create<GameStore>()(
     ...createSystemStore(set, get, store),
     ...createOutfitStore(set, get, store),
     ...createCreatureStore(set, get, store),
-    ...createSpellStore(set, get, store),
+    ...createAbilityStore(set, get, store), // CHANGED: from createSpellStore to createAbilityStore
   }))
 );

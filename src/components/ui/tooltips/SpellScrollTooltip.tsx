@@ -1,7 +1,9 @@
+// src/components/ui/tooltips/SpellScrollTooltip.tsx
 import React, { useState, useEffect } from "react";
 import { ItemData, ItemInstance, ItemType } from "../../../types";
 import { ItemInstanceManager } from "../../../utils/ItemInstanceManager";
-import { SpellDictionary } from "../../../services/SpellDictionaryService";
+import { AbilityDictionary } from "../../../services/AbilityDictionaryService";
+import { abilitySystem } from "../../../services/AbilitySystem";
 
 interface SpellScrollTooltipProps {
   itemInstance?: ItemInstance;
@@ -22,9 +24,11 @@ const SpellScrollTooltip: React.FC<SpellScrollTooltipProps> = ({ itemInstance, v
 
   if (!visible || !itemData || itemData.type !== ItemType.SPELL_SCROLL) return null;
 
-  // Get the spell this scroll teaches
-  const spellData = itemData.teachesSpell ? SpellDictionary.getSpell(itemData.teachesSpell) : null;
-  const alreadyLearned = true;
+  // Get the ability this scroll teaches (formerly spell)
+  const abilityData = itemData.teachesSpell
+    ? AbilityDictionary.getAbility(itemData.teachesSpell)
+    : null;
+  const alreadyLearned = abilityData ? abilitySystem.isAbilityLearned(abilityData.id) : false;
 
   const getTooltipStyle = () => {
     return {
@@ -60,13 +64,13 @@ const SpellScrollTooltip: React.FC<SpellScrollTooltipProps> = ({ itemInstance, v
         </div>
       </div>
 
-      {/* Spell Information */}
-      {spellData && (
+      {/* Ability Information */}
+      {abilityData && (
         <div className="spell-scroll-spell-info">
           <div className="spell-scroll-spell-header">
             <img
-              src={spellData.icon}
-              alt={spellData.name}
+              src={abilityData.icon}
+              alt={abilityData.name}
               className="spell-scroll-spell-icon"
               style={{ width: "24px", height: "24px", marginRight: "8px" }}
             />
@@ -75,11 +79,12 @@ const SpellScrollTooltip: React.FC<SpellScrollTooltipProps> = ({ itemInstance, v
                 className="spell-scroll-spell-name"
                 style={{ color: "#6ab5ff", fontWeight: "bold" }}
               >
-                {spellData.name}
+                {abilityData.name}
               </div>
               <div className="spell-scroll-spell-stats" style={{ fontSize: "11px", color: "#888" }}>
-                {spellData.healing && `Healing: ${spellData.healing}`}
-                {spellData.cooldown && ` • Cooldown: ${spellData.cooldown}s`}
+                {(abilityData as any).healing && `Healing: ${(abilityData as any).healing}`}
+                {abilityData.damage > 0 && `Damage: ${abilityData.damage}`}
+                {abilityData.cooldown && ` • Cooldown: ${abilityData.cooldown}s`}
               </div>
             </div>
           </div>
@@ -92,7 +97,7 @@ const SpellScrollTooltip: React.FC<SpellScrollTooltipProps> = ({ itemInstance, v
               fontStyle: "italic",
             }}
           >
-            {spellData.description}
+            {abilityData.description}
           </div>
         </div>
       )}
@@ -121,9 +126,11 @@ const SpellScrollTooltip: React.FC<SpellScrollTooltipProps> = ({ itemInstance, v
         }}
       >
         {alreadyLearned ? (
-          <div style={{ color: "#888888", fontSize: "12px" }}>✓ Spell already learned</div>
+          <div style={{ color: "#888888", fontSize: "12px" }}>✓ Ability already learned</div>
         ) : (
-          <div style={{ color: "#00ff00", fontSize: "12px" }}>Right-click to learn this spell</div>
+          <div style={{ color: "#00ff00", fontSize: "12px" }}>
+            Right-click to learn this ability
+          </div>
         )}
       </div>
     </div>

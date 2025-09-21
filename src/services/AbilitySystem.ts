@@ -17,6 +17,9 @@ class AbilitySystemService {
     eventBus.on("playerCharacter.skill.updated", this.handleSkillUpdate.bind(this));
     eventBus.on("ability.activate", this.handleAbilityActivation.bind(this));
     eventBus.on("ability.setForSlot", this.handleSetAbilityForSlot.bind(this));
+
+    // Subscribe to ability learning events
+    eventBus.on("ability.learn", this.handleAbilityLearning.bind(this));
   }
 
   /**
@@ -51,6 +54,45 @@ class AbilitySystemService {
   }
 
   /**
+   * Handle ability learning - UPDATED to use store
+   */
+  handleAbilityLearning(data: any): void {
+    if (!data || !data.abilityId) return;
+
+    // Use the store method instead of local method
+    const gameStore = useGameStore.getState();
+    gameStore.learnAbility(data.abilityId);
+  }
+
+  /**
+   * Learn a new ability - UPDATED to use store
+   */
+  learnAbility(abilityId: string): boolean {
+    const gameStore = useGameStore.getState();
+    return gameStore.learnAbility(abilityId);
+  }
+
+  /**
+   * Check if ability is learned - UPDATED to use store
+   */
+  isAbilityLearned(abilityId: string): boolean {
+    const gameStore = useGameStore.getState();
+    return gameStore.isAbilityLearned(abilityId);
+  }
+
+  /**
+   * Get all learned abilities - UPDATED to use store
+   */
+  getLearnedAbilities(): Ability[] {
+    const gameStore = useGameStore.getState();
+    const learnedAbilityIds = gameStore.getLearnedAbilities();
+
+    return learnedAbilityIds
+      .map((abilityId) => AbilityDictionary.getAbility(abilityId))
+      .filter((ability): ability is Ability => ability !== null);
+  }
+
+  /**
    * Updates available abilities based on equipped items
    */
   updateAbilitiesForEquipment(equipment: PlayerCharacterEquipment): void {
@@ -73,48 +115,34 @@ class AbilitySystemService {
         ? ItemDictionary.getWeaponType(equipment.weapon.templateId)
         : null;
     }
-    // Check if weapon type has changed
-    const weaponTypeChanged =
-      this.currentWeaponType !== null && this.currentWeaponType !== weaponType;
 
-    // Update stored weapon type
+    // Check if weapon type has changed
+    const weaponTypeChanged = this.currentWeaponType !== weaponType;
     this.currentWeaponType = weaponType;
 
-    // Create a map of default ability assignments for weapon abilities
+    // Get abilities specific to the weapon type
     const defaultAbilities: Record<number, Ability> = {};
 
-    // Get default abilities for the current weapon type
-    if (weaponType === "melee") {
+    if (!hasWeaponEquipped || !weaponType) {
+      // No weapon equipped - only allow general abilities (learned spells)
+      // Don't set any default weapon abilities
+    } else if (weaponType === "melee") {
       this.getDefaultMeleeAbilities(defaultAbilities);
-    } else if (weaponType === "magic") {
-      this.getDefaultMagicAbilities(defaultAbilities);
     } else if (weaponType === "archery") {
       this.getDefaultArcheryAbilities(defaultAbilities);
+    } else if (weaponType === "magic") {
+      this.getDefaultMagicAbilities(defaultAbilities);
     }
 
     // Get bonus abilities from equipped items
     const bonusAbilities = this.getBonusAbilitiesFromEquipment(equipment);
-
-    // Track which abilities are from item bonuses so we don't remove them
     const bonusAbilityIds = bonusAbilities.map((ability) => ability.id);
 
-    // Create a map of current abilities we want to keep
-    const abilitiesToKeep: Record<number, Ability> = {};
-
-    // Keep bonus abilities that are currently assigned to a slot
-    Object.entries(this.activeAbilities).forEach(([slot, ability]) => {
-      if (bonusAbilityIds.includes(ability.id)) {
-        // This is a bonus ability, keep it regardless of weapon change
-        abilitiesToKeep[parseInt(slot)] = ability;
-      }
-    });
-
-    // If weapon type changed, reset weapon abilities but keep bonus abilities
+    // If weapon type changed, reset all abilities to defaults
     if (weaponTypeChanged) {
-      // Reset active abilities but preserve bonus abilities
-      this.activeAbilities = { ...abilitiesToKeep };
+      this.activeAbilities = {};
 
-      // Add the default abilities for the new weapon type in empty slots
+      // Set default abilities for weapon type
       for (const [slot, ability] of Object.entries(defaultAbilities)) {
         const slotNum = parseInt(slot);
         if (!this.activeAbilities[slotNum]) {
@@ -141,7 +169,7 @@ class AbilitySystemService {
 
     // If weapon type changed, notify the user
     if (weaponTypeChanged) {
-      eventBus.emit("ui.message.show", `Abilities updated for ${weaponType} weapon`);
+      eventBus.emit("ui.message.show", `Abilities updated for ${weaponType || "no"} weapon`);
     }
   }
 
@@ -292,12 +320,22 @@ class AbilitySystemService {
       return;
     }
 
+    // Check if this is a learned ability (general type) and if player has learned it
+    if (ability.weaponType === "general" && !this.isAbilityLearned(ability.id)) {
+      eventBus.emit("ui.message.show", `You haven't learned ${ability.name} yet`);
+      return;
+    }
+
     // Get the current weapon type for the skill progression event
     const equipment = useGameStore.getState().playerCharacter.equipment;
-    // Fix: Get weapon type from ItemDictionary using templateId
     const weaponType = equipment.weapon?.templateId
       ? ItemDictionary.getWeaponType(equipment.weapon.templateId)
-      : "melee"; // Default to melee
+      : "general"; // Use general for learned abilities
+
+    // Handle special ability effects
+    if (ability.id === "lightHealing") {
+      this.castLightHealing(ability);
+    }
 
     // Play the ability animation
     abilityAnimationSystem.playAbilityAnimation(ability.id).then((success) => {
@@ -311,15 +349,17 @@ class AbilitySystemService {
           duration: ability.cooldown,
         });
 
-        // Emit damage event for skill progression
-        eventBus.emit("damage.dealt", {
-          source: "ability",
-          abilityId: ability.id,
-          weaponType: weaponType,
-          targetType: "monster",
-          targetId: "unknown", // We don't know which monster was hit
-          damage: ability.damage,
-        });
+        // Emit damage event for skill progression (if it's a damage ability)
+        if (ability.damage && ability.damage > 0) {
+          eventBus.emit("damage.dealt", {
+            source: "ability",
+            abilityId: ability.id,
+            weaponType: weaponType,
+            targetType: "monster",
+            targetId: "unknown", // We don't know which monster was hit
+            damage: ability.damage,
+          });
+        }
 
         // Emit ability activated event
         eventBus.emit("ability.activated", {
@@ -328,6 +368,38 @@ class AbilitySystemService {
         });
       }
     });
+  }
+
+  /**
+   * Light Healing ability effect
+   */
+  private castLightHealing(ability: Ability): boolean {
+    const gameStore = useGameStore.getState();
+    const currentHealth = gameStore.playerCharacter.health;
+    const calculatedStats = gameStore.calculatedStats;
+
+    if (currentHealth >= calculatedStats.totalHealth) {
+      eventBus.emit("ui.message.show", "You are already at full health");
+      return false;
+    }
+
+    // Calculate healing amount
+    const healingAmount = (ability as any).healing || 10;
+    const newHealth = Math.min(currentHealth + healingAmount, calculatedStats.totalHealth);
+    const actualHealing = newHealth - currentHealth;
+
+    // Apply healing
+    gameStore.updatePlayerHealth(newHealth);
+
+    // Show healing numbers
+    eventBus.emit("healing.dealt", {
+      amount: actualHealing,
+      source: "ability",
+      abilityId: ability.id,
+    });
+
+    eventBus.emit("ui.message.show", `Healed for ${actualHealing} health`);
+    return true;
   }
 
   handleSetAbilityForSlot(data: any): void {
@@ -389,6 +461,7 @@ class AbilitySystemService {
     eventBus.off("equipment.changed", this.handleEquipmentChanged);
     eventBus.off("playerCharacter.skill.updated", this.handleSkillUpdate);
     eventBus.off("ability.activate", this.handleAbilityActivation);
+    eventBus.off("ability.learn", this.handleAbilityLearning);
   }
 }
 

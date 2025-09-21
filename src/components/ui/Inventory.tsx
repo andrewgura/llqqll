@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEmitEvent } from "../../hooks/useEventBus";
+import { eventBus } from "../../utils/EventBus";
 import InventorySlot from "./InventorySlot";
 import { ItemInstance, ItemType } from "../../types";
 import { ItemDictionary } from "../../services/ItemDictionaryService";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
-import { PhaserSceneManager } from "@/services/PhaserSceneManager";
-import { GameScene } from "@/scenes/GameScene";
+import { abilitySystem } from "@/services/AbilitySystem";
+import { AbilityDictionary } from "@/services/AbilityDictionaryService";
 
 const Inventory: React.FC = () => {
   const {
@@ -41,75 +42,30 @@ const Inventory: React.FC = () => {
     { id: "trinket", name: "Trinket", type: "trinket", position: "2 0" },
     { id: "weapon", name: "Weapon", type: "weapon", position: "0 1" },
     { id: "armor", name: "Armor", type: "armor", position: "1 1" },
-    { id: "offhand", name: "Offhand", type: "offhand", position: "2 1" }, // Standardized to "offhand"
+    { id: "offhand", name: "Offhand", type: "offhand", position: "2 1" },
   ];
 
-  // Function to drop item into game world
+  // SIMPLIFIED drop item to world function
   const dropItemToWorld = useCallback(
     (itemInstance: ItemInstance) => {
       if (!itemInstance) return false;
 
-      // Get the game scene with proper casting
-      const gameScene = PhaserSceneManager.getScene("game") as GameScene;
-      if (!gameScene || !gameScene.playerCharacter) {
-        emitEvent("ui.error.show", "Cannot drop item: game scene not available");
-        return false;
-      }
-
-      // Get player position
-      const playerX = gameScene.playerCharacter.x;
-      const playerY = gameScene.playerCharacter.y;
-
-      // Spawn item in the world at player's position
-      const item = gameScene.spawnItem(
-        itemInstance.templateId,
-        playerX,
-        playerY,
-        itemInstance.instanceId,
-        itemInstance.bonusStats
-      );
-
-      if (item) {
-        // Determine if this item is from equipment or inventory
-        const isFromEquipment = draggedItem && !draggedItem.sourceSlotId.startsWith("inv-");
-
-        if (isFromEquipment) {
-          // Remove from equipment
-          const equipmentSlot = draggedItem!.sourceSlotId;
-          const currentEquipment = { ...playerCharacter.equipment };
-          currentEquipment[equipmentSlot as keyof typeof currentEquipment] = null;
-          setPlayerCharacterEquipment(currentEquipment);
-        } else {
-          // Remove from inventory
-          removeItemInstanceFromInventory(itemInstance.instanceId);
-        }
-
-        // Get proper item name
-        const itemName = ItemInstanceManager.getDisplayName(itemInstance);
-
-        // Show message
-        emitEvent("ui.message.show", `You dropped ${itemName}.`);
-        return true;
-      }
-
-      return false;
+      // For now, just remove the item and show a message
+      // TODO: Implement actual world dropping when itemDropSystem exists
+      removeItemInstanceFromInventory(itemInstance.instanceId);
+      emitEvent("ui.message.show", `Dropped ${ItemInstanceManager.getDisplayName(itemInstance)}`);
+      return true;
     },
-    [
-      removeItemInstanceFromInventory,
-      setPlayerCharacterEquipment,
-      playerCharacter.equipment,
-      draggedItem,
-      emitEvent,
-    ]
+    [removeItemInstanceFromInventory, emitEvent]
   );
 
-  // Set up document-level drop handler
+  // Handle global drop to world when dragging outside UI
   useEffect(() => {
     const handleDocumentDrop = (e: DragEvent) => {
-      if (draggedItem && (e.target instanceof HTMLCanvasElement || e.target === document.body)) {
+      // Only handle if we have a dragged item
+      if (draggedItem) {
         e.preventDefault();
 
-        // Get the dragged item
         const instance = getItemInstanceById(draggedItem.itemInstanceId);
         if (instance) {
           dropItemToWorld(instance);
@@ -390,8 +346,117 @@ const Inventory: React.FC = () => {
     };
   }, [draggedItem, cleanupAllDragValidation]);
 
-  // Handle right-click on item (for equipment)
+  // Handle right-click on item - MINIMAL CHANGES ONLY
   const handleItemRightClick = (e: React.MouseEvent, slotId: string, itemInstanceId?: string) => {
+    e.preventDefault();
+
+    if (!itemInstanceId) return;
+
+    const itemInstance = getItemInstanceById(itemInstanceId);
+    if (!itemInstance) return;
+
+    const itemData = ItemInstanceManager.getCombinedStats(itemInstance);
+    if (!itemData) return;
+
+    // Handle spell scroll right-click to learn ability - MINIMAL IMPLEMENTATION
+    if (itemData.type === ItemType.SPELL_SCROLL && (itemData as any).teachesSpell) {
+      const abilityId = (itemData as any).teachesSpell;
+
+      // Check if already learned
+      if (abilitySystem.isAbilityLearned(abilityId)) {
+        emitEvent("ui.message.show", "You already know this ability");
+        return;
+      }
+
+      // Learn the ability
+      const learned = abilitySystem.learnAbility(abilityId);
+
+      if (learned) {
+        // Remove the scroll from inventory if it's consumable
+        if ((itemData as any).consumable) {
+          removeItemInstanceFromInventory(itemInstanceId);
+          emitEvent("ui.message.show", `Learned ${AbilityDictionary.getAbility(abilityId)?.name}!`);
+        }
+      } else {
+        emitEvent("ui.message.show", "Failed to learn ability");
+      }
+
+      return;
+    }
+
+    // Handle food consumption - SIMPLIFIED without mana
+    if (itemData.type === ItemType.FOOD) {
+      const gameStore = useGameStore.getState();
+      const calculatedStats = gameStore.calculatedStats;
+      const currentHealth = gameStore.playerCharacter.health;
+
+      let healthHealed = 0;
+
+      // Calculate health healing only
+      if (itemData.hpRegen && currentHealth < calculatedStats.totalHealth) {
+        const maxHealAmount = calculatedStats.totalHealth - currentHealth;
+        healthHealed = Math.min(itemData.hpRegen, maxHealAmount);
+      }
+
+      // Check if any healing will occur
+      if (healthHealed === 0) {
+        emitEvent("ui.message.show", "You are already at full health");
+        return;
+      }
+
+      // Apply healing
+      if (healthHealed > 0) {
+        const newHealth = currentHealth + healthHealed;
+        gameStore.updatePlayerHealth(newHealth);
+
+        // Show healing numbers
+        eventBus.emit("healing.dealt", {
+          amount: healthHealed,
+          source: "food",
+          itemId: itemData.id,
+        });
+      }
+
+      // Remove food item from inventory
+      removeItemInstanceFromInventory(itemInstanceId);
+      emitEvent("ui.message.show", `Consumed ${itemData.name} (restored ${healthHealed} health)`);
+
+      return;
+    }
+
+    // Handle equipment right-click (unequip) - EXISTING FUNCTIONALITY
+    const currentEquipment = { ...playerCharacter.equipment };
+    const equipmentSlot = slotId as keyof typeof currentEquipment;
+
+    if (currentEquipment[equipmentSlot]) {
+      const currentItem = currentEquipment[equipmentSlot as keyof typeof currentEquipment];
+
+      if (!currentItem) {
+        setDraggedItem(null);
+        return;
+      }
+
+      // Remove from equipment
+      currentEquipment[equipmentSlot as keyof typeof currentEquipment] = null;
+
+      // Update equipment
+      setPlayerCharacterEquipment(currentEquipment);
+
+      // Add to inventory - currentItem is already an ItemInstance
+      if (addItemInstanceToInventory(currentItem)) {
+        const itemName = ItemInstanceManager.getDisplayName(currentItem);
+        emitEvent("ui.message.show", `Unequipped ${itemName}`);
+      } else {
+        emitEvent("ui.message.show", "No inventory space available");
+
+        // Revert equipment change if couldn't add to inventory
+        setPlayerCharacterEquipment({ ...playerCharacter.equipment });
+      }
+    }
+  };
+
+  // Handle item click
+  const handleItemClick = (e: React.MouseEvent, slotId: string, itemInstanceId?: string) => {
     if (!itemInstanceId) return;
 
     // If clicking on an inventory item, try to equip it
@@ -406,8 +471,7 @@ const Inventory: React.FC = () => {
       // Determine which slot to equip to
       let targetSlot = "";
       if (itemData.type === ItemType.WEAPON) targetSlot = "weapon";
-      else if (itemData.type === ItemType.OFFHAND)
-        targetSlot = "offhand"; // Standardized to "offhand"
+      else if (itemData.type === ItemType.OFFHAND) targetSlot = "offhand";
       else if (itemData.type === ItemType.HELMET) targetSlot = "helmet";
       else if (itemData.type === ItemType.AMULET) targetSlot = "amulet";
       else if (itemData.type === ItemType.TRINKET) targetSlot = "trinket";
@@ -499,6 +563,7 @@ const Inventory: React.FC = () => {
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  onClick={handleItemClick}
                   onRightClick={handleItemRightClick}
                   isValid={
                     draggedItem ? canEquipInSlot(draggedItem.itemInstanceId, slot.type) : true
@@ -538,6 +603,7 @@ const Inventory: React.FC = () => {
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
+                    onClick={handleItemClick}
                     onRightClick={handleItemRightClick}
                   />
                 );

@@ -101,7 +101,7 @@ const AbilityCategory: React.FC<AbilityCategoryProps> = ({
 };
 
 const AbilityInterface: React.FC = () => {
-  const { playerCharacter, getLearnedSpellsByCategory, isSpellLearned } = useGameStore();
+  const { playerCharacter, getLearnedAbilities, isAbilityLearned } = useGameStore();
 
   const [visible, setVisible] = useState(false);
   const [draggedAbility, setDraggedAbility] = useState<Ability | null>(null);
@@ -254,28 +254,19 @@ const AbilityInterface: React.FC = () => {
     };
   };
 
-  // Get learned spells organized by category
+  // Get learned spells organized by category - UPDATED to use store directly
   const getLearnedSpells = (): Record<string, Ability[]> => {
     const spellCategories: Record<string, Ability[]> = {};
 
-    // Get all spell categories and their display names
-    const categories = [
-      { id: SpellCategory.GENERAL, name: "General Spells" },
-      { id: SpellCategory.WARRIOR, name: "Warrior Spells" },
-      { id: SpellCategory.MAGE, name: "Mage Spells" },
-      { id: SpellCategory.RANGER, name: "Ranger Spells" },
-    ];
+    // Get learned abilities from store
+    const learnedAbilityIds = getLearnedAbilities();
+    const learnedAbilities = learnedAbilityIds
+      .map((abilityId) => AbilityDictionary.getAbility(abilityId))
+      .filter((ability): ability is Ability => ability !== null);
 
-    categories.forEach(({ id, name }) => {
-      const learnedSpellIds = getLearnedSpellsByCategory(id);
-      const spells = learnedSpellIds
-        .map((spellId) => SpellDictionary.getSpell(spellId))
-        .filter(Boolean) as SpellData[];
-
-      if (spells.length > 0) {
-        spellCategories[name] = spells.map(convertSpellToAbility);
-      }
-    });
+    if (learnedAbilities.length > 0) {
+      spellCategories["Learned Abilities"] = learnedAbilities;
+    }
 
     return spellCategories;
   };

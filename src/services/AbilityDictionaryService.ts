@@ -1,16 +1,20 @@
+// src/services/AbilityDictionaryService.ts
 import { Ability } from "@/types";
 import { eventBus } from "../utils/EventBus";
 
-// Define a proper interface for the class
 export interface IAbilityDictionary {
   getAbility(abilityId: string): Ability | null;
-  getAbilitiesForWeaponType(weaponType: string, slot: string): Ability[];
-  getAbilitiesForSkill(skillId: string): Ability[];
-  getAnimationType(abilityId: string): string;
+  getAllAbilities(): Ability[];
+  getAbilitiesByWeaponType(weaponType: string): Ability[];
+  getLearnedAbilities(): Ability[];
+  isAbilityLearned(abilityId: string): boolean;
+  learnAbility(abilityId: string): boolean;
+  syncLearnedAbilities(learnedAbilityIds: string[]): void;
 }
 
 class AbilityDictionaryService implements IAbilityDictionary {
   private abilityDatabase: Record<string, Ability> = {};
+  private learnedAbilities: Set<string> = new Set();
 
   constructor() {
     this.initializeAbilities();
@@ -18,254 +22,239 @@ class AbilityDictionaryService implements IAbilityDictionary {
 
   private initializeAbilities(): void {
     try {
-      // 1h melee
+      // ===== GENERAL ABILITIES (formerly spells) =====
+
+      // Light Healing - available to all classes
+      this.abilityDatabase.lightHealing = {
+        id: "lightHealing",
+        name: "Light Healing",
+        description: "Restore 10 health instantly.",
+        icon: "assets/spell-icons/light-healing.png",
+        cooldown: 3, // 3 seconds cooldown
+        damage: 0,
+        weaponType: "general", // Special type for learned abilities
+        requiredWeapon: "any",
+        skillId: "general",
+        healing: 10, // Add healing property
+        range: 0, // Self-cast
+        areaSize: 0,
+        animationType: "healing",
+        animationConfig: {
+          effectDuration: 1000,
+          particleColors: [0x00ff00, 0x88ff88, 0xffffff], // Green healing colors
+          targetSelf: true,
+        },
+      };
+
+      // ===== MELEE ABILITIES =====
+
+      // Basic sword slash
       this.abilityDatabase.swordSlash = {
         id: "swordSlash",
         name: "Sword Slash",
-        description: "A basic sword attack that deals damage to enemies in front of you.",
-        icon: "assets/abilities/sword-slash.png",
-        cooldown: 1,
-        damage: 2,
-        weaponType: "weapon",
-        requiredWeapon: "melee",
-        skillId: "meleeWeapons",
+        description: "A powerful melee attack that deals damage to enemies in front of you.",
+        icon: "assets/ability-icons/sword-slash.png",
+        cooldown: 0.5,
+        damage: 10,
+        weaponType: "melee",
+        requiredWeapon: "any",
+        skillId: "melee",
         range: 60,
+        areaSize: 90,
         animationType: "directional",
         animationConfig: {
-          arcAngle: Math.PI / 2, // 90 degrees arc
           effectDuration: 300,
-          lineWidth: 3,
+          particleColors: [0xffff00, 0xff9900],
+          arcAngle: 90,
         },
       };
 
+      // Whirlwind attack
       this.abilityDatabase.whirlwind = {
         id: "whirlwind",
         name: "Whirlwind",
-        description: "Spin around with your sword, damaging all nearby enemies.",
-        icon: "assets/abilities/whirlwind.png",
-        cooldown: 1,
-        damage: 1,
-        weaponType: "weapon",
-        requiredWeapon: "melee",
-        skillId: "meleeWeapons",
-        areaSize: 100,
-        animationType: "tileGrid",
+        description: "Spin in a circle, dealing damage to all nearby enemies.",
+        icon: "assets/ability-icons/whirlwind.png",
+        cooldown: 3,
+        damage: 8,
+        weaponType: "melee",
+        requiredWeapon: "any",
+        skillId: "melee",
+        range: 70,
+        areaSize: 360,
+        animationType: "area",
         animationConfig: {
-          gridSize: 5, // 5x5 grid (player + 2 tiles in each direction)
           effectDuration: 800,
-          particleCount: 10,
+          particleColors: [0x00ffff, 0x0099ff],
+          startRadius: 10,
+          endRadius: 70,
+          expansionTime: 300,
         },
       };
 
-      // 2h melee
+      // Bash attack
       this.abilityDatabase.bash = {
         id: "bash",
         name: "Bash",
-        description: "A powerful strike that stuns enemies directly in front of you.",
-        icon: "assets/abilities/bash.png",
-        cooldown: 1,
-        damage: 3,
-        weaponType: "weapon",
-        requiredWeapon: "melee",
-        skillId: "meleeWeapons",
-        minSkillLevel: 2,
-        range: 40,
+        description: "A heavy attack that deals massive damage to a single target.",
+        icon: "assets/ability-icons/bash.png",
+        cooldown: 4,
+        damage: 20,
+        weaponType: "melee",
+        requiredWeapon: "any",
+        skillId: "melee",
+        range: 60,
+        areaSize: 45,
         animationType: "directional",
         animationConfig: {
-          arcAngle: Math.PI / 4, // 45 degrees arc
           effectDuration: 400,
-          lineWidth: 5,
-          particleColors: [0xffcc00, 0xff9900],
+          particleColors: [0xff4400, 0xff7700],
+          arcAngle: 45,
         },
       };
 
-      // Fireball spell (for mages)
-      this.abilityDatabase.fireball = {
-        id: "fireball",
-        name: "Fireball",
-        description:
-          "Launch a ball of fire that travels in a straight line, exploding on impact with enemies or obstacles.",
-        icon: "assets/abilities/fireball.png",
-        cooldown: 1,
-        damage: 3,
-        weaponType: "weapon",
-        requiredWeapon: "magic",
-        skillId: "magic",
-        range: 250,
-        areaSize: 64,
-        animationType: "projectile",
-        animationConfig: {
-          projectileSpeed: 250,
-          explosionRadius: 64,
-          particleColors: [0xff0000, 0xff7700, 0xffff00],
-          effectDuration: 1000,
-        },
-      };
+      // ===== ARCHERY ABILITIES =====
 
-      // Ice Nova (for mages)
-      this.abilityDatabase.iceNova = {
-        id: "iceNova",
-        name: "Ice Nova",
-        description: "Create an expanding ring of ice that damages and slows enemies.",
-        icon: "assets/abilities/ice_nova.png",
-        cooldown: 1,
-        damage: 2,
-        weaponType: "weapon",
-        requiredWeapon: "magic",
-        skillId: "magic",
-        areaSize: 128,
-        animationType: "expanding",
-        animationConfig: {
-          expansionTime: 500,
-          ringWidth: 8,
-          startRadius: 32,
-          endRadius: 128,
-          particleColors: [0xaaddff, 0x00aaff, 0xffffff],
-          effectDuration: 1200,
-        },
-      };
-
-      // Fire Wall ability
-      this.abilityDatabase.fireWall = {
-        id: "fireWall",
-        name: "Fire Wall",
-        description:
-          "Create a wall of fire that damages enemies passing through it every 0.5 seconds.",
-        icon: "assets/abilities/firewall.png",
-        cooldown: 1, // Increased cooldown to balance continuous damage
-        damage: 1, // Damage per tick (every 0.5 seconds)
-        weaponType: "weapon",
-        requiredWeapon: "magic",
-        skillId: "magic",
-        minSkillLevel: 2,
-        range: 120,
-        animationType: "directional",
-        animationConfig: {
-          wallLength: 160, // Length of the wall
-          wallWidth: 40, // Increased width for better hit detection
-          effectDuration: 5000, // 5 seconds duration
-          particleColors: [0xff4500, 0xff7f00, 0xffff00],
-          lineWidth: 4,
-          arcAngle: Math.PI / 6,
-        },
-      };
-
-      // Energy Wave ability
-      this.abilityDatabase.energyWave = {
-        id: "energyWave",
-        name: "Energy Wave",
-        description:
-          "Release a powerful wave of arcane energy that damages enemies in a cone in front of you.",
-        icon: "assets/abilities/energy-wave.png",
-        cooldown: 2,
-        damage: 2,
-        weaponType: "weapon",
-        requiredWeapon: "magic",
-        skillId: "magic",
-        minSkillLevel: 3,
-        range: 140,
-        animationType: "tileBasedEnergyWave", // Use the new strategy
-        animationConfig: {
-          effectDuration: 800,
-          patternType: "cone", // For future pattern variations
-          particleColors: [0x00aaff, 0x0088ff, 0x66ccff], // Blue energy colors
-        },
-      };
-
-      // 1. Power Shot - Fast piercing projectile
+      // Power Shot
       this.abilityDatabase.powerShot = {
         id: "powerShot",
         name: "Power Shot",
-        description: "Fire a high-velocity arrow that pierces through enemies in a straight line.",
-        icon: "assets/abilities/power-shot.png",
-        cooldown: 1,
-        damage: 2,
-        weaponType: "weapon",
-        requiredWeapon: "archery",
+        description: "Fire a powerful arrow that pierces through enemies.",
+        icon: "assets/ability-icons/power-shot.png",
+        cooldown: 2,
+        damage: 15,
+        weaponType: "archery",
+        requiredWeapon: "any",
         skillId: "archery",
-        range: 384, // 12 tiles at 32px per tile
-        animationType: "piercingProjectile", // New animation type for piercing projectiles
+        range: 200,
+        areaSize: 20,
+        animationType: "projectile",
         animationConfig: {
-          projectileSpeed: 500, // Faster than fireball
-          effectDuration: 800,
-          particleColors: [0xdddddd, 0xbbbbbb, 0xffffff], // Arrow-like colors
-          piercing: true, // Indicates the projectile should pierce through enemies
+          effectDuration: 600,
+          particleColors: [0xffff00, 0xffa500],
+          projectileSpeed: 300,
+          lineWidth: 4,
         },
       };
 
-      // 2. Focus - Buff ability
+      // Focus
       this.abilityDatabase.focus = {
         id: "focus",
         name: "Focus",
-        description: "Increase your attack speed for 10 seconds.",
-        icon: "assets/abilities/focus.png",
-        cooldown: 1,
-        damage: 0, // No direct damage
-        weaponType: "weapon",
-        requiredWeapon: "archery",
+        description: "Increase accuracy and critical hit chance for a short time.",
+        icon: "assets/ability-icons/focus.png",
+        cooldown: 8,
+        damage: 0,
+        weaponType: "archery",
+        requiredWeapon: "any",
         skillId: "archery",
+        range: 0,
+        areaSize: 0,
         animationType: "buff",
         animationConfig: {
-          effectDuration: 10000, // 10 seconds
-          buffType: "attackSpeed",
-          buffMultiplier: 1.5, // 50% faster attacks
-          particleColors: [0xffdd00, 0xffaa00], // Gold/yellow for buffs
+          effectDuration: 500,
+          particleColors: [0x00ff00, 0x88ff88],
+          targetSelf: true,
         },
       };
 
-      // 3. Rain of Arrows - Area effect at cursor position
+      // Rain of Arrows
       this.abilityDatabase.rainOfArrows = {
         id: "rainOfArrows",
         name: "Rain of Arrows",
-        description:
-          "Create a storm of arrows at your target location, dealing damage to all enemies in the area.",
-        icon: "assets/abilities/rain-of-arrows.png",
-        cooldown: 1,
-        damage: 1, // Damage per tick
-        weaponType: "weapon",
-        requiredWeapon: "archery",
+        description: "Fire multiple arrows in a spread pattern.",
+        icon: "assets/ability-icons/rain-of-arrows.png",
+        cooldown: 6,
+        damage: 6,
+        weaponType: "archery",
+        requiredWeapon: "any",
         skillId: "archery",
-        minSkillLevel: 2,
-        range: 256, // Maximum distance from player to target
-        areaSize: 128, // 4x4 tiles (32px per tile)
-        animationType: "rainOfArrows", // Custom animation type
+        range: 180,
+        areaSize: 120,
+        animationType: "multiProjectile",
         animationConfig: {
-          effectDuration: 5000, // 5 seconds total
-          damageInterval: 500, // 0.5 seconds per tick
-          particleColors: [0xdddddd, 0xbbbbbb, 0xaaaaaa], // Arrow-like colors
-          areaSize: 128, // 4x4 tiles
-          targetable: true, // Can be targeted with cursor
+          effectDuration: 800,
+          particleColors: [0x8899ff, 0x6677cc],
+          particleCount: 5,
+          projectileSpeed: 250,
         },
       };
 
-      //Bone Spike
-      this.abilityDatabase.boneSpike = {
-        id: "boneSpike",
-        name: "Bone Spike",
-        description:
-          "Summons razor-sharp bone spikes at the target location, dealing more damage to enemies in the center.",
-        icon: "assets/abilities/bone-spike.png",
-        cooldown: 1.5,
-        damage: 15, // Center damage (outer damage will be 70% of this)
-        weaponType: "trinket", // Special type for item-granted abilities
-        requiredWeapon: "any", // Can be used with any weapon type
-        skillId: "magic", // Uses magic skill for progression
-        range: 200,
-        areaSize: 96, // 3x3 tiles
-        animationType: "boneSpike",
+      // ===== MAGIC ABILITIES =====
+
+      // Fireball
+      this.abilityDatabase.fireball = {
+        id: "fireball",
+        name: "Fireball",
+        description: "Launch a ball of fire that explodes on impact.",
+        icon: "assets/ability-icons/fireball.png",
+        cooldown: 3,
+        damage: 12,
+        weaponType: "magic",
+        requiredWeapon: "any",
+        skillId: "magic",
+        range: 150,
+        areaSize: 60,
+        animationType: "projectileExplosion",
         animationConfig: {
-          effectDuration: 1500,
-          pulseDelay: 700, // Delay before spike animation
-          particleColors: [0xffffff, 0xf0f0f0, 0xe0e0e0],
+          effectDuration: 1000,
+          particleColors: [0xff4400, 0xff7700, 0xffaa00],
+          projectileSpeed: 200,
+          explosionRadius: 30,
         },
       };
 
-      // Emit initialization event
-      eventBus.emit("abilityDictionary.initialized", {
-        count: Object.keys(this.abilityDatabase).length,
-      });
+      // Energy Wave
+      this.abilityDatabase.energyWave = {
+        id: "energyWave",
+        name: "Energy Wave",
+        description: "Send out a wave of energy that damages enemies in a line.",
+        icon: "assets/ability-icons/energy-wave.png",
+        cooldown: 4,
+        damage: 10,
+        weaponType: "magic",
+        requiredWeapon: "any",
+        skillId: "magic",
+        range: 120,
+        areaSize: 80,
+        animationType: "wave",
+        animationConfig: {
+          effectDuration: 600,
+          particleColors: [0x00ffff, 0x0088ff],
+          wallLength: 80,
+          wallWidth: 10,
+        },
+      };
+
+      // Fire Wall
+      this.abilityDatabase.fireWall = {
+        id: "fireWall",
+        name: "Fire Wall",
+        description: "Create a wall of fire that damages enemies who walk through it.",
+        icon: "assets/ability-icons/fire-wall.png",
+        cooldown: 8,
+        damage: 5,
+        weaponType: "magic",
+        requiredWeapon: "any",
+        skillId: "magic",
+        range: 100,
+        areaSize: 80,
+        animationType: "wall",
+        animationConfig: {
+          effectDuration: 2000,
+          particleColors: [0xff4400, 0xff7700, 0xffaa00],
+          wallLength: 80,
+          wallWidth: 15,
+        },
+      };
+
+      console.log(
+        "Ability dictionary initialized with",
+        Object.keys(this.abilityDatabase).length,
+        "abilities"
+      );
     } catch (error) {
-      console.error("Error initializing abilities:", error);
+      console.error("Failed to initialize ability dictionary:", error);
     }
   }
 
@@ -273,42 +262,59 @@ class AbilityDictionaryService implements IAbilityDictionary {
     return this.abilityDatabase[abilityId] || null;
   }
 
-  getAbilitiesForWeaponType(weaponType: string, slot: string): Ability[] {
-    try {
-      return Object.values(this.abilityDatabase).filter((ability) => {
-        return ability.weaponType === slot && ability.requiredWeapon === weaponType;
-      });
-    } catch (error) {
-      console.error("Error getting abilities for weapon type:", error);
-      return [];
-    }
-  }
-
-  getAbilitiesForSkill(skillId: string): Ability[] {
-    try {
-      return Object.values(this.abilityDatabase).filter((ability) => {
-        return ability.skillId === skillId;
-      });
-    } catch (error) {
-      console.error("Error getting abilities for skill:", error);
-      return [];
-    }
-  }
-
-  getAnimationType(abilityId: string): string {
-    try {
-      const ability = this.getAbility(abilityId);
-      return ability?.animationType || "none";
-    } catch (error) {
-      console.error("Error getting animation type:", error);
-      return "none";
-    }
-  }
-
   getAllAbilities(): Ability[] {
     return Object.values(this.abilityDatabase);
   }
+
+  getAbilitiesByWeaponType(weaponType: string): Ability[] {
+    return Object.values(this.abilityDatabase).filter(
+      (ability) => ability.weaponType === weaponType
+    );
+  }
+
+  getLearnedAbilities(): Ability[] {
+    return Array.from(this.learnedAbilities)
+      .map((abilityId) => this.getAbility(abilityId))
+      .filter((ability): ability is Ability => ability !== null);
+  }
+
+  isAbilityLearned(abilityId: string): boolean {
+    return this.learnedAbilities.has(abilityId);
+  }
+
+  learnAbility(abilityId: string): boolean {
+    const ability = this.getAbility(abilityId);
+    if (!ability) {
+      console.warn(`Attempted to learn unknown ability: ${abilityId}`);
+      return false;
+    }
+
+    if (this.learnedAbilities.has(abilityId)) {
+      return false; // Already learned
+    }
+
+    this.learnedAbilities.add(abilityId);
+
+    // Emit event
+    eventBus.emit("ability.learned", {
+      abilityId,
+      abilityName: ability.name,
+      weaponType: ability.weaponType,
+    });
+
+    console.log(`Learned ability: ${ability.name} (${abilityId})`);
+    return true;
+  }
+
+  syncLearnedAbilities(learnedAbilityIds: string[]): void {
+    this.learnedAbilities.clear();
+    learnedAbilityIds.forEach((abilityId) => {
+      if (this.abilityDatabase[abilityId]) {
+        this.learnedAbilities.add(abilityId);
+      }
+    });
+  }
 }
 
-// Create a singleton instance
+// Create and export singleton instance
 export const AbilityDictionary = new AbilityDictionaryService();
