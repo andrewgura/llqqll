@@ -2,9 +2,9 @@
 import { eventBus } from "../utils/EventBus";
 import { useGameStore } from "../stores/gameStore";
 import { ItemDictionary } from "./ItemDictionaryService";
-import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { DamageFormulas } from "@/utils/formulas";
 import { KillBonusService } from "./KillBonusService";
+import { DamageType } from "@/types";
 
 class AutoAttackSystemService {
   private targetedEnemy: any | null = null;
@@ -56,82 +56,70 @@ class AutoAttackSystemService {
 
     // Base 2 seconds, reduced by 50ms per attack speed point
     // Formula: 2000 - ((attackSpeed - 1) * 50)
-    const cooldown = this.baseAttackCooldown - totalAttackSpeed;
+    const cooldown = this.baseAttackCooldown - (totalAttackSpeed - 1) * 50;
 
-    // Minimum cooldown of 200ms to prevent too fast attacks
+    // Ensure minimum cooldown of 200ms
     return Math.max(200, cooldown);
   }
 
   /**
-   * Get current attack cooldown (for UI or other systems)
+   * Handle monster death by clearing target
    */
-  getCurrentAttackCooldown(): number {
-    return this.calculateAttackCooldown();
+  private handleMonsterDeath(data: { id: string; type: string; name: string }): void {
+    if (!data || !this.targetedEnemy) return;
+
+    // If our targeted monster died, clear the target
+    if (
+      this.targetedEnemy.id === data.id ||
+      (this.targetedEnemy.monsterType === data.type && this.targetedEnemy.monsterName === data.name)
+    ) {
+      this.clearTarget();
+    }
   }
 
   /**
-   * Set target for auto-attacking
+   * Set the target for auto-attacking
    */
-  setTarget(monster: any): void {
-    // Clear existing target
+  setTarget(enemy: any): void {
+    // Clear existing target first
     this.clearTarget();
 
     // Set new target
-    this.targetedEnemy = monster;
+    this.targetedEnemy = enemy;
     this.isAutoAttacking = true;
+    this.lastAttackTime = 0; // Reset to allow immediate attack
 
-    // Reset attack time to allow immediate first attack
-    this.lastAttackTime = 0;
-
-    // Show target indicator on the monster itself
-    if (typeof monster.showTargetIndicator === "function") {
-      monster.showTargetIndicator();
-    }
+    // Show target indicator on the monster
+    enemy.showTargetIndicator?.();
 
     // Notify UI or other systems about targeting
-    eventBus.emit("target.selected", { target: monster });
+    eventBus.emit("target.selected", { target: enemy });
   }
 
   /**
-   * Clear current target
+   * Clear the current target and stop auto-attacking
    */
   clearTarget(): void {
     if (!this.targetedEnemy) return;
 
     // Hide target indicator on the current target
-    if (this.targetedEnemy && typeof this.targetedEnemy.hideTargetIndicator === "function") {
-      this.targetedEnemy.hideTargetIndicator();
-    }
+    this.targetedEnemy?.hideTargetIndicator?.();
 
     const previousTarget = this.targetedEnemy;
-    this.isAutoAttacking = false;
     this.targetedEnemy = null;
+    this.isAutoAttacking = false;
 
     // Notify about untargeting
     eventBus.emit("target.cleared", { previousTarget });
   }
 
   /**
-   * Handle monster death
-   */
-  private handleMonsterDeath(data: { type: string; name: string }): void {
-    if (!data || !this.targetedEnemy) return;
-
-    // If our targeted monster died, clear the target
-    if (this.targetedEnemy.monsterType === data.type || this.targetedEnemy.name === data.name) {
-      this.clearTarget();
-    }
-  }
-
-  /**
-   * Update attack properties based on equipped weapon
-   * Now properly reads from GameStore as single source of truth
+   * Update attack properties when equipment changes
    */
   private updateAttackProperties(): void {
     try {
-      // Read current equipment from GameStore (single source of truth)
-      const equipment = useGameStore.getState().playerCharacter.equipment;
-      const weaponEquipped = equipment.weapon;
+      const store = useGameStore.getState();
+      const weaponEquipped = store.playerCharacter.equipment.weapon;
 
       if (weaponEquipped && weaponEquipped.templateId) {
         // Get weapon type from the item dictionary
@@ -173,17 +161,38 @@ class AutoAttackSystemService {
   }
 
   /**
+   * Get damage type color for floating text
+   */
+  private getDamageTypeColor(damageType?: DamageType): string {
+    switch (damageType) {
+      case DamageType.FIRE:
+        return "#ff6b47";
+      case DamageType.ICE:
+        return "#6bb6ff";
+      case DamageType.ENERGY:
+        return "#ffeb3b";
+      case DamageType.POISON:
+        return "#8bc34a";
+      case DamageType.PHYSICAL:
+      default:
+        return "#ffffff";
+    }
+  }
+
+  /**
    * Display floating damage number above the target
    */
-  private showDamageNumber(x: number, y: number, damage: number): void {
+  private showDamageNumber(x: number, y: number, damage: number, damageType?: DamageType): void {
     try {
       const gameScene = this.getGameScene();
       if (!gameScene) return;
 
+      const color = this.getDamageTypeColor(damageType);
+
       // Create floating damage text
       const damageText = gameScene.add.text(x, y - 20, damage.toString(), {
         fontSize: "14px",
-        color: "#ffffff",
+        color: color,
         stroke: "#000000",
         strokeThickness: 2,
       });
@@ -207,147 +216,89 @@ class AutoAttackSystemService {
   }
 
   /**
-   * Create visual attack effect based on weapon type
+   * Calculate attack damages - returns primary damage and optional secondary damage
    */
-  private createAttackEffect(
-    scene: Phaser.Scene,
-    startX: number,
-    startY: number,
-    targetX: number,
-    targetY: number
-  ): void {
-    try {
-      if (this.currentWeaponType === "melee") {
-        // Melee slash effect
-        const slash = scene.add.circle(targetX, targetY, 15, 0xffffff, 0.7);
-        slash.setDepth(6);
-        scene.tweens.add({
-          targets: slash,
-          alpha: 0,
-          scale: 2,
-          duration: 200,
-          onComplete: () => {
-            slash.destroy();
+  private calculateAttackDamages(): {
+    primary: number;
+    secondary?: { damage: number; type: DamageType; attackType: string };
+  } {
+    // Read from GameStore (single source of truth)
+    const store = useGameStore.getState();
+    const equipment = store.playerCharacter.equipment;
+    const skills = store.playerCharacter.skills;
+
+    // Calculate primary damage using existing formula
+    const primaryDamage = DamageFormulas.calculatePlayerAutoAttackDamage(
+      equipment,
+      skills,
+      this.currentWeaponType
+    );
+
+    // Apply kill bonus to primary damage
+    const bonusedPrimaryDamage =
+      this.targetedEnemy && this.targetedEnemy.monsterType
+        ? KillBonusService.applyDamageBonus(primaryDamage, this.targetedEnemy.monsterType)
+        : primaryDamage;
+
+    // Check for secondary attack
+    const weaponEquipped = equipment.weapon;
+    if (weaponEquipped && weaponEquipped.templateId) {
+      const weaponData = ItemDictionary.getItem(weaponEquipped.templateId);
+
+      if (weaponData?.secondaryAttackType && weaponData?.secondaryDamagePeanlty) {
+        // Calculate secondary damage as percentage of primary damage
+        const secondaryDamageRaw = Math.round(
+          bonusedPrimaryDamage * (weaponData.secondaryDamagePeanlty / 100)
+        );
+
+        // Apply kill bonus to secondary damage too
+        const secondaryDamage =
+          this.targetedEnemy && this.targetedEnemy.monsterType
+            ? KillBonusService.applyDamageBonus(secondaryDamageRaw, this.targetedEnemy.monsterType)
+            : secondaryDamageRaw;
+
+        return {
+          primary: bonusedPrimaryDamage,
+          secondary: {
+            damage: Math.max(1, secondaryDamage),
+            type: weaponData.secondaryDamageType || DamageType.PHYSICAL,
+            attackType: this.getWeaponTypeFromAttackType(weaponData.secondaryAttackType),
           },
-        });
-
-        // Emit melee impact event
-        eventBus.emit("player.attack.impact", {
-          attackType: "melee",
-          position: { x: targetX, y: targetY },
-        });
-      } else if (this.currentWeaponType === "archery") {
-        // Arrow projectile
-        const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
-        const arrow = scene.add.rectangle(startX, startY, 8, 2, 0xdddddd);
-        arrow.rotation = angle;
-        arrow.setDepth(6);
-
-        // Emit projectile start event
-        eventBus.emit("player.attack.projectile", {
-          attackType: "archery",
-          startPosition: { x: startX, y: startY },
-          targetPosition: { x: targetX, y: targetY },
-          angle: angle,
-        });
-
-        scene.tweens.add({
-          targets: arrow,
-          x: targetX,
-          y: targetY,
-          duration: 300,
-          onComplete: () => {
-            arrow.destroy();
-
-            // Add impact effect
-            const impact = scene.add.circle(targetX, targetY, 8, 0xffffff, 0.8);
-            impact.setDepth(6);
-            scene.tweens.add({
-              targets: impact,
-              alpha: 0,
-              scale: 2,
-              duration: 200,
-              onComplete: () => {
-                impact.destroy();
-              },
-            });
-
-            // Emit impact event
-            eventBus.emit("player.attack.impact", {
-              attackType: "archery",
-              position: { x: targetX, y: targetY },
-            });
-          },
-        });
-      } else if (this.currentWeaponType === "magic") {
-        // Magic bolt
-        const bolt = scene.add.circle(startX, startY, 6, 0x00aaff, 0.8);
-        bolt.setDepth(6);
-
-        // Add a glow
-        const glow = scene.add.circle(startX, startY, 10, 0x00aaff, 0.4);
-        glow.setDepth(5);
-
-        // Emit projectile start event
-        eventBus.emit("player.attack.projectile", {
-          attackType: "magic",
-          startPosition: { x: startX, y: startY },
-          targetPosition: { x: targetX, y: targetY },
-        });
-
-        scene.tweens.add({
-          targets: [bolt, glow],
-          x: targetX,
-          y: targetY,
-          duration: 400,
-          onComplete: () => {
-            bolt.destroy();
-            glow.destroy();
-
-            // Create impact effect
-            const impact = scene.add.circle(targetX, targetY, 15, 0x00aaff, 0.6);
-            impact.setDepth(6);
-            scene.tweens.add({
-              targets: impact,
-              alpha: 0,
-              scale: 2,
-              duration: 300,
-              onComplete: () => {
-                impact.destroy();
-              },
-            });
-
-            // Emit impact event
-            eventBus.emit("player.attack.impact", {
-              attackType: "magic",
-              position: { x: targetX, y: targetY },
-            });
-          },
-        });
+        };
       }
-    } catch (error) {
-      console.error("Error creating player attack effect:", error);
+    }
+
+    return { primary: bonusedPrimaryDamage };
+  }
+
+  /**
+   * Convert PlayerAttackType to weapon type string
+   */
+  private getWeaponTypeFromAttackType(attackType: any): string {
+    switch (attackType) {
+      case "Magic":
+        return "magic";
+      case "Ranged":
+        return "archery";
+      case "Melee":
+      default:
+        return "melee";
     }
   }
 
   /**
-   * Perform an attack if conditions are met
+   * Perform the attack action
    */
-  performAttack(): boolean {
+  private performAttack(): boolean {
     try {
-      if (!this.targetedEnemy || !this.isAutoAttacking) {
+      const now = Date.now();
+      const currentCooldown = this.calculateAttackCooldown();
+
+      // Check cooldown
+      if (now - this.lastAttackTime < currentCooldown) {
         return false;
       }
 
-      const now = Date.now();
-      const currentCooldown = this.calculateAttackCooldown();
-      const timeSinceLastAttack = now - this.lastAttackTime;
-
-      if (timeSinceLastAttack < currentCooldown) {
-        return false; // Attack on cooldown
-      }
-
-      // Get scene and player character directly from Phaser game instance
       const gameScene = this.getGameScene();
       if (!gameScene) {
         return false;
@@ -382,16 +333,48 @@ class AutoAttackSystemService {
           }
         }
 
+        // Get attack damages (calculate regardless of hit/miss for event data)
+        const attacks = this.calculateAttackDamages();
+
         // If the attack will hit, apply damage
         if (doesHit) {
-          // Get attack damage from equipment
-          let damage = this.calculateDamage();
+          // Apply primary damage
+          this.applyDamageToTarget(attacks.primary);
+          this.showDamageNumber(
+            this.targetedEnemy.x,
+            this.targetedEnemy.y,
+            attacks.primary,
+            DamageType.PHYSICAL
+          );
 
-          // Apply damage to enemy
-          this.applyDamageToTarget(damage);
+          // Emit primary damage event for skill progression
+          eventBus.emit("damage.dealt", {
+            source: "autoAttack",
+            weaponType: this.currentWeaponType,
+            targetType: "monster",
+            targetId: this.targetedEnemy.monsterType || this.targetedEnemy.id,
+            damage: attacks.primary,
+          });
 
-          // Show floating damage number
-          this.showDamageNumber(this.targetedEnemy.x, this.targetedEnemy.y, damage);
+          // Apply secondary damage if it exists
+          if (attacks.secondary) {
+            this.applyDamageToTarget(attacks.secondary.damage);
+            this.showDamageNumber(
+              this.targetedEnemy.x + 15, // Slight offset so both numbers are visible
+              this.targetedEnemy.y - 10,
+              attacks.secondary.damage,
+              attacks.secondary.type
+            );
+
+            // Emit secondary damage event for skill progression
+            eventBus.emit("damage.dealt", {
+              source: "autoAttack",
+              weaponType: attacks.secondary.attackType,
+              targetType: "monster",
+              targetId: this.targetedEnemy.monsterType || this.targetedEnemy.id,
+              damage: attacks.secondary.damage,
+            });
+          }
 
           // Play attack animation based on weapon type
           this.createAttackEffect(
@@ -401,15 +384,6 @@ class AutoAttackSystemService {
             this.targetedEnemy.x,
             this.targetedEnemy.y
           );
-
-          // Emit damage event for skill progression
-          eventBus.emit("damage.dealt", {
-            source: "autoAttack",
-            weaponType: this.currentWeaponType,
-            targetType: "monster",
-            targetId: this.targetedEnemy.monsterType || this.targetedEnemy.id,
-            damage: damage,
-          });
         }
 
         // Update last attack time
@@ -422,7 +396,7 @@ class AutoAttackSystemService {
             x: this.targetedEnemy.x,
             y: this.targetedEnemy.y,
           },
-          damage: doesHit ? this.calculateDamage() : 0,
+          damage: doesHit ? attacks.primary : 0,
           didHit: doesHit,
           attackCooldown: currentCooldown, // Include current cooldown in event
         });
@@ -477,29 +451,6 @@ class AutoAttackSystemService {
   }
 
   /**
-   * Calculate damage based on weapon and stats
-   */
-  private calculateDamage(): number {
-    // Read from GameStore (single source of truth)
-    const store = useGameStore.getState();
-    const equipment = store.playerCharacter.equipment;
-    const skills = store.playerCharacter.skills;
-
-    // Calculate base damage using existing formula
-    const baseDamage = DamageFormulas.calculatePlayerAutoAttackDamage(
-      equipment,
-      skills,
-      this.currentWeaponType
-    );
-
-    // Apply kill bonus if we have a target
-    if (this.targetedEnemy && this.targetedEnemy.monsterType) {
-      return KillBonusService.applyDamageBonus(baseDamage, this.targetedEnemy.monsterType);
-    }
-
-    return baseDamage;
-  }
-  /**
    * Apply damage to the target
    */
   private applyDamageToTarget(damage: number): void {
@@ -516,6 +467,138 @@ class AutoAttackSystemService {
       source: "player",
       weaponType: this.currentWeaponType,
     });
+  }
+
+  /**
+   * Create attack effects based on weapon type
+   */
+  private createAttackEffect(
+    gameScene: any,
+    playerX: number,
+    playerY: number,
+    targetX: number,
+    targetY: number
+  ): void {
+    try {
+      switch (this.currentWeaponType) {
+        case "melee":
+          this.createMeleeEffect(gameScene, playerX, playerY, targetX, targetY);
+          break;
+        case "archery":
+          this.createArcheryEffect(gameScene, playerX, playerY, targetX, targetY);
+          break;
+        case "magic":
+          this.createMagicEffect(gameScene, playerX, playerY, targetX, targetY);
+          break;
+      }
+    } catch (error) {
+      console.error("Error creating attack effect:", error);
+    }
+  }
+
+  /**
+   * Create melee attack visual effect
+   */
+  private createMeleeEffect(
+    gameScene: any,
+    playerX: number,
+    playerY: number,
+    targetX: number,
+    targetY: number
+  ): void {
+    try {
+      // Simple slash effect
+      const graphics = gameScene.add.graphics();
+      graphics.lineStyle(3, 0x6ab5ff, 0.8);
+      graphics.beginPath();
+      graphics.moveTo(playerX, playerY);
+      graphics.lineTo(targetX, targetY);
+      graphics.strokePath();
+      graphics.setDepth(5);
+
+      // Fade out the effect
+      gameScene.tweens.add({
+        targets: graphics,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+          graphics.destroy();
+        },
+      });
+    } catch (error) {
+      console.error("Error in createMeleeEffect:", error);
+    }
+  }
+
+  /**
+   * Create archery attack visual effect
+   */
+  private createArcheryEffect(
+    gameScene: any,
+    playerX: number,
+    playerY: number,
+    targetX: number,
+    targetY: number
+  ): void {
+    try {
+      // Create arrow projectile
+      const arrow = gameScene.add.rectangle(playerX, playerY, 20, 3, 0x8b4513);
+      arrow.setDepth(5);
+
+      // Calculate angle and rotation
+      const angle = Phaser.Math.Angle.Between(playerX, playerY, targetX, targetY);
+      arrow.setRotation(angle);
+
+      // Animate arrow to target
+      gameScene.tweens.add({
+        targets: arrow,
+        x: targetX,
+        y: targetY,
+        duration: 300,
+        ease: "Power2",
+        onComplete: () => {
+          arrow.destroy();
+        },
+      });
+    } catch (error) {
+      console.error("Error in createArcheryEffect:", error);
+    }
+  }
+
+  /**
+   * Create magic attack visual effect
+   */
+  private createMagicEffect(
+    gameScene: any,
+    playerX: number,
+    playerY: number,
+    targetX: number,
+    targetY: number
+  ): void {
+    try {
+      // Create magic missile
+      const missile = gameScene.add.circle(playerX, playerY, 8, 0x9c27b0, 0.8);
+      missile.setDepth(5);
+
+      // Add glow effect
+      const glow = gameScene.add.circle(playerX, playerY, 12, 0x9c27b0, 0.3);
+      glow.setDepth(4);
+
+      // Animate both missile and glow to target
+      gameScene.tweens.add({
+        targets: [missile, glow],
+        x: targetX,
+        y: targetY,
+        duration: 400,
+        ease: "Power2",
+        onComplete: () => {
+          missile.destroy();
+          glow.destroy();
+        },
+      });
+    } catch (error) {
+      console.error("Error in createMagicEffect:", error);
+    }
   }
 
   /**

@@ -30,6 +30,7 @@ const initialPlayerState: PlayerCharacterState = {
     ItemInstanceManager.createItemInstance("sword1"),
     ItemInstanceManager.createItemInstance("greatSword", { power: 1 }),
     ItemInstanceManager.createItemInstance("woodenStaff"),
+    ItemInstanceManager.createItemInstance("fireSword"),
     ItemInstanceManager.createItemInstance("twigBow"),
     ItemInstanceManager.createItemInstance("boneClub"),
     ItemInstanceManager.createItemInstance("boneCharm"),
