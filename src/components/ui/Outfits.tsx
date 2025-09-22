@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-import { OutfitData } from "../../stores/components/outfitStore";
+import { OutfitData } from "@/types/player/outfits";
 
-// UPDATED: Complete color list from colors.txt
 const TINT_COLORS = [
   // Default/White
   { name: "Default", value: 0xffffff, color: "#ffffff" },

@@ -1,4 +1,3 @@
-// App.tsx with Resources Component and Creatures
 import React from "react";
 import { GameProvider } from "./contexts/GameContext";
 import { UIProvider } from "./contexts/UIContext";
@@ -9,7 +8,6 @@ import Inventory from "./components/ui/Inventory";
 import UINavBar from "./components/ui/UINavBar";
 import SetCollection from "./components/ui/SetCollection";
 import AbilityInterface from "./components/ui/AbilityInterface";
-import Shop from "./components/ui/Shop";
 import DeathManager from "./components/ui/DeathManager";
 import GameItemTooltip from "./components/ui/GameItemTooltip";
 import QuestLog from "./components/ui/QuestLog";
@@ -20,10 +18,11 @@ import Creatures from "./components/ui/Creatures";
 import CurrencyDisplay from "./components/ui/CurrencyDisplay";
 import { eventBus } from "./utils/EventBus";
 import ExperiencePopups from "./components/ui/ExperiencePopup";
-import LevelUpNotification from "./components/ui/LevelUpNotification";
+import Notifications from "./components/ui/Notifications";
 import Outfits from "./components/ui/Outfits";
 import StatSellerInterface from "./components/ui/npc-dialogs/StatSellerInterface";
 import QuestGiverDialog from "./components/ui/npc-dialogs/QuestGiverDialog";
+import Shop from "./components/ui/npc-dialogs/Shop";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -101,7 +100,7 @@ function App() {
               <MapNameLabel />
               <Resources />
               <ExperiencePopups />
-              <LevelUpNotification />
+              <Notifications />
               <div className="bottom-ui">
                 <ActionBar />
               </div>

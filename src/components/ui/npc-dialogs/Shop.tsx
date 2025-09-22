@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { useGameStore } from "../../stores/gameStore";
-import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
+import useEventBus, { useEmitEvent } from "@/hooks/useEventBus";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
-import { ShopItem } from "@/services/NPCService";
+import { useGameStore } from "@/stores/gameStore";
+import { ShopItem } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
+import { useState, useEffect } from "react";
 
 interface BuyItemRowProps {
   item: ShopItem;
