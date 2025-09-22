@@ -139,6 +139,7 @@ export interface ItemData {
   secondaryDamagePeanlty?: number;
   secondaryAttackType?: PlayerAttackType; // Melee, Magic, or Ranged. This attack with scale with that Skill
   secondaryDamageType?: DamageType; // Default Physical
+  secondaryPower?: number;
 
   // Spell Scroll
   teachesSpell?: string;

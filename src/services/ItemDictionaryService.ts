@@ -32,6 +32,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     secondaryAttackType: PlayerAttackType.Magic,
     secondaryDamagePeanlty: 75,
     secondaryDamageType: DamageType.FIRE,
+    secondaryPower: 2,
     weight: 10,
     description: "A magical sword engulfed in flames. Deal bonus magic damage",
     texture: "fire-sword",
