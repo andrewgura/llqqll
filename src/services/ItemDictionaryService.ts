@@ -1,5 +1,5 @@
 // src/services/ItemDictionaryService.ts
-import { ItemData, ItemCategory, ItemSets, ItemType, PlayerAttackType } from "@/types";
+import { ItemData, ItemCategory, ItemSets, ItemType, PlayerAttackType, DamageType } from "@/types";
 
 const ITEM_DATA: Record<string, ItemData> = {
   // Melee Weapons
@@ -28,8 +28,10 @@ const ITEM_DATA: Record<string, ItemData> = {
     weaponType: "melee",
     power: 4,
     armor: 2,
+    damageType: DamageType.PHYSICAL,
     secondaryAttackType: PlayerAttackType.Magic,
     secondaryDamagePeanlty: 75,
+    secondaryDamageType: DamageType.FIRE,
     weight: 10,
     description: "A magical sword engulfed in flames. Deal bonus magic damage",
     texture: "fire-sword",

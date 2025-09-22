@@ -42,3 +42,11 @@ export interface DamageEvent {
   targetId: string; // monster type
   damage: number;
 }
+
+export enum DamageType {
+  PHYSICAL = "physyical",
+  FIRE = "fire",
+  ICE = "ice",
+  ENERGY = "energy",
+  POISON = "poison",
+}

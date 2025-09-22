@@ -2,6 +2,7 @@
  * Core item system types
  */
 
+import { DamageType } from "..";
 import { PlayerAttackType } from "../player/character";
 
 /**
@@ -118,6 +119,7 @@ export interface ItemData {
   bonusSkills?: string[];
   sellValue?: number;
   stackable?: boolean;
+  damageType?: DamageType; // Default Physical
 
   // Display properties
   description?: string;
@@ -136,6 +138,7 @@ export interface ItemData {
   // Secondary Attack
   secondaryDamagePeanlty?: number;
   secondaryAttackType?: PlayerAttackType; // Melee, Magic, or Ranged. This attack with scale with that Skill
+  secondaryDamageType?: DamageType; // Default Physical
 
   // Spell Scroll
   teachesSpell?: string;
