@@ -29,7 +29,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "lightHealing",
         name: "Light Healing",
         description: "Restore 10 health instantly.",
-        icon: "assets/spell-icons/light-healing.png",
+        icon: "assets/abilities/light-healing.png",
         cooldown: 3, // 3 seconds cooldown
         damage: 0,
         weaponType: "general", // Special type for learned abilities
@@ -53,7 +53,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "swordSlash",
         name: "Sword Slash",
         description: "A powerful melee attack that deals damage to enemies in front of you.",
-        icon: "assets/ability-icons/sword-slash.png",
+        icon: "assets/abilities/sword-slash.png",
         cooldown: 0.5,
         damage: 10,
         weaponType: "melee",
@@ -74,7 +74,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "whirlwind",
         name: "Whirlwind",
         description: "Spin in a circle, dealing damage to all nearby enemies.",
-        icon: "assets/ability-icons/whirlwind.png",
+        icon: "assets/abilities/whirlwind.png",
         cooldown: 3,
         damage: 8,
         weaponType: "melee",
@@ -97,7 +97,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "bash",
         name: "Bash",
         description: "A heavy attack that deals massive damage to a single target.",
-        icon: "assets/ability-icons/bash.png",
+        icon: "assets/abilities/bash.png",
         cooldown: 4,
         damage: 20,
         weaponType: "melee",
@@ -120,7 +120,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "powerShot",
         name: "Power Shot",
         description: "Fire a powerful arrow that pierces through enemies.",
-        icon: "assets/ability-icons/power-shot.png",
+        icon: "assets/abilities/power-shot.png",
         cooldown: 2,
         damage: 15,
         weaponType: "archery",
@@ -142,7 +142,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "focus",
         name: "Focus",
         description: "Increase accuracy and critical hit chance for a short time.",
-        icon: "assets/ability-icons/focus.png",
+        icon: "assets/abilities/focus.png",
         cooldown: 8,
         damage: 0,
         weaponType: "archery",
@@ -163,7 +163,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "rainOfArrows",
         name: "Rain of Arrows",
         description: "Fire multiple arrows in a spread pattern.",
-        icon: "assets/ability-icons/rain-of-arrows.png",
+        icon: "assets/abilities/rain-of-arrows.png",
         cooldown: 6,
         damage: 6,
         weaponType: "archery",
@@ -187,7 +187,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "fireball",
         name: "Fireball",
         description: "Launch a ball of fire that explodes on impact.",
-        icon: "assets/ability-icons/fireball.png",
+        icon: "assets/abilities/fireball.png",
         cooldown: 3,
         damage: 12,
         weaponType: "magic",
@@ -209,7 +209,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "energyWave",
         name: "Energy Wave",
         description: "Send out a wave of energy that damages enemies in a line.",
-        icon: "assets/ability-icons/energy-wave.png",
+        icon: "assets/abilities/energy-wave.png",
         cooldown: 4,
         damage: 10,
         weaponType: "magic",
@@ -231,7 +231,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         id: "fireWall",
         name: "Fire Wall",
         description: "Create a wall of fire that damages enemies who walk through it.",
-        icon: "assets/ability-icons/fire-wall.png",
+        icon: "assets/abilities/firewall.png",
         cooldown: 8,
         damage: 5,
         weaponType: "magic",
@@ -247,12 +247,6 @@ class AbilityDictionaryService implements IAbilityDictionary {
           wallWidth: 15,
         },
       };
-
-      console.log(
-        "Ability dictionary initialized with",
-        Object.keys(this.abilityDatabase).length,
-        "abilities"
-      );
     } catch (error) {
       console.error("Failed to initialize ability dictionary:", error);
     }

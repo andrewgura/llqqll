@@ -101,10 +101,9 @@ const AbilityCategory: React.FC<AbilityCategoryProps> = ({
 };
 
 const AbilityInterface: React.FC = () => {
-  const { playerCharacter, getLearnedAbilities, isAbilityLearned } = useGameStore();
+  const { playerCharacter, getLearnedAbilities } = useGameStore();
 
   const [visible, setVisible] = useState(false);
-  const [draggedAbility, setDraggedAbility] = useState<Ability | null>(null);
   const [actionBarAbilities, setActionBarAbilities] = useState<Record<number, string>>({});
   const [lastWeaponType, setLastWeaponType] = useState<string | null>(null);
   const emitEvent = useEmitEvent();
@@ -208,8 +207,6 @@ const AbilityInterface: React.FC = () => {
   };
 
   const handleAbilityDragStart = (e: React.DragEvent, ability: Ability) => {
-    setDraggedAbility(ability);
-
     // Fix drag image - create image element but don't append it to DOM
     const img = new Image();
     img.src = ability.icon;
@@ -230,28 +227,6 @@ const AbilityInterface: React.FC = () => {
         console.error("Failed to set drag image:", error);
       }
     }, 10);
-  };
-
-  // Convert SpellData to Ability format for display
-  const convertSpellToAbility = (spell: SpellData): Ability => {
-    return {
-      id: spell.id,
-      name: spell.name,
-      description: spell.description,
-      icon: spell.icon,
-      cooldown: spell.cooldown,
-      damage: spell.damage || 0,
-      weaponType: "spell", // Mark as spell
-      requiredWeapon: "any",
-      skillId: "spells",
-      range: spell.range,
-      areaSize: spell.areaSize,
-      animationType: spell.animationType,
-      animationConfig: spell.animationConfig,
-      // Add spell-specific properties
-      ...(spell as any), // Include original spell data
-      isSpell: true, // Mark as spell for identification
-    };
   };
 
   // Get learned spells organized by category - UPDATED to use store directly
