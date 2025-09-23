@@ -8,6 +8,8 @@ import { ItemDictionary } from "../../services/ItemDictionaryService";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { abilitySystem } from "@/services/AbilitySystem";
 import { AbilityDictionary } from "@/services/AbilityDictionaryService";
+import { GameScene } from "@/scenes/GameScene";
+import { PhaserSceneManager } from "@/services/PhaserSceneManager";
 
 const Inventory: React.FC = () => {
   const {
@@ -50,11 +52,59 @@ const Inventory: React.FC = () => {
     (itemInstance: ItemInstance) => {
       if (!itemInstance) return false;
 
-      // For now, just remove the item and show a message
-      // TODO: Implement actual world dropping when itemDropSystem exists
-      removeItemInstanceFromInventory(itemInstance.instanceId);
-      emitEvent("ui.message.show", `Dropped ${ItemInstanceManager.getDisplayName(itemInstance)}`);
-      return true;
+      try {
+        // Get the current game scene
+        const gameScene = PhaserSceneManager.getCurrentScene() as GameScene;
+
+        if (!gameScene || !gameScene.playerCharacter) {
+          console.error("Game scene or player not available for item drop");
+          emitEvent("ui.message.show", "Cannot drop item: Game scene not available");
+          return false;
+        }
+
+        // Get player position
+        const playerX = gameScene.playerCharacter.x;
+        const playerY = gameScene.playerCharacter.y;
+
+        // Create a slight offset so items don't stack exactly on the player
+        const offsetX = (Math.random() - 0.5) * 50; // Random offset within 50 pixels
+        const offsetY = (Math.random() - 0.5) * 50;
+
+        // Create the item in the game world
+        const worldItem = gameScene.spawnItem(
+          itemInstance.templateId,
+          playerX + offsetX,
+          playerY + offsetY,
+          itemInstance.instanceId,
+          itemInstance.bonusStats,
+          itemInstance.quantity || 1
+        );
+
+        if (worldItem) {
+          // Remove from inventory only after successful spawn
+          removeItemInstanceFromInventory(itemInstance.instanceId);
+          emitEvent(
+            "ui.message.show",
+            `Dropped ${ItemInstanceManager.getDisplayName(itemInstance)}`
+          );
+
+          // Emit event for item dropped
+          eventBus.emit("item.dropped.world", {
+            itemInstance,
+            x: playerX + offsetX,
+            y: playerY + offsetY,
+          });
+
+          return true;
+        }
+
+        emitEvent("ui.message.show", "Failed to drop item to world");
+        return false;
+      } catch (error) {
+        console.error("Error dropping item to world:", error);
+        emitEvent("ui.message.show", "Failed to drop item to world");
+        return false;
+      }
     },
     [removeItemInstanceFromInventory, emitEvent]
   );
